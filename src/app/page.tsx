@@ -43,6 +43,7 @@ function HomeContent() {
       setContacts([]);
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
   const loadContacts = async () => {
@@ -140,6 +141,7 @@ function HomeContent() {
       // Reload contacts to get correct state
       loadContacts();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, showToast]);
 
   const handlePhotoUpload = useCallback(async (contactId: string, file: File) => {
@@ -239,7 +241,7 @@ function HomeContent() {
               Your personal map of people and places. Sign in to start adding your contacts.
             </p>
             <p className="text-neutral-400 text-xs">
-              Click "Sign in" in the top right to get started
+              Click &quot;Sign in&quot; in the top right to get started
             </p>
           </div>
         </div>

@@ -363,7 +363,7 @@ export function AddPersonModal({
 
                 {/* Info */}
                 <p className="text-xs text-neutral-400">
-                  They'll receive an invite to complete their profile and pin themselves on the map.
+                  They&apos;ll receive an invite to complete their profile and pin themselves on the map.
                 </p>
 
                 {/* Submit */}

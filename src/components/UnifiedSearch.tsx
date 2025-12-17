@@ -249,7 +249,7 @@ export function UnifiedSearch({
                 </div>
                 <div className="flex-1">
                   <p className="text-neutral-900">
-                    Add <span className="font-medium">"{query.trim()}"</span>
+                    Add <span className="font-medium">&quot;{query.trim()}&quot;</span>
                   </p>
                   <p className="text-xs text-neutral-500">Create a new person on the map</p>
                 </div>

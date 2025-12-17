@@ -172,7 +172,7 @@ export function AuthButton({ onAuthChange }: AuthButtonProps) {
                 </button>
               </div>
               <p className="text-xs text-neutral-400 mt-3 text-center">
-                No password needed — we'll email you a magic link
+                No password needed — we&apos;ll email you a magic link
               </p>
             </form>
           )}
