@@ -80,7 +80,7 @@ export function ProfilePanel({ contact, onClose, onUpdate, onPhotoUpload }: Prof
   if (!contact) return null;
 
   const age = contact.birthYear ? getAge(contact.birthYear) : null;
-  const hasContactInfo = contact.email || contact.socialLinks.length > 0;
+  const hasContactInfo = !!(contact.email || contact.socialLinks.length > 0);
   const isEditable = !!onUpdate;
 
   return (
