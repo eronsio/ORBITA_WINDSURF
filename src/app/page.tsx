@@ -6,6 +6,7 @@ import { ProfilePanel } from '@/components/ProfilePanel';
 import { ImportButton } from '@/components/ImportButton';
 import { UnifiedSearch } from '@/components/UnifiedSearch';
 import { AuthButton } from '@/components/AuthButton';
+import { ProfileSetup } from '@/components/ProfileSetup';
 import { Logo } from '@/components/Logo';
 import { ToastProvider, useToast } from '@/components/Toast';
 import { 
@@ -15,6 +16,11 @@ import {
   createContacts,
   uploadProfileImage 
 } from '@/lib/supabase/contacts';
+import {
+  fetchDiscoverableProfiles,
+  profileToContact,
+  type Profile,
+} from '@/lib/supabase/profiles';
 import { matchesSearch } from '@/lib/utils';
 import type { Contact } from '@/types/contact';
 
@@ -30,17 +36,21 @@ const Map = dynamic(() => import('@/components/Map'), {
 function HomeContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [communityProfiles, setCommunityProfiles] = useState<Contact[]>([]);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
   const { showToast } = useToast();
 
-  // Load contacts when authenticated
+  // Load contacts and community profiles when authenticated
   useEffect(() => {
     if (isAuthenticated) {
       loadContacts();
+      loadCommunityProfiles();
     } else {
       setContacts([]);
+      setCommunityProfiles([]);
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -55,6 +65,15 @@ function HomeContent() {
       setContacts(data);
     }
     setLoading(false);
+  };
+
+  const loadCommunityProfiles = async () => {
+    const { data, error } = await fetchDiscoverableProfiles();
+    if (error) {
+      console.error('Failed to load community profiles:', error);
+    } else if (data) {
+      setCommunityProfiles(data.map(profileToContact));
+    }
   };
 
   const handleAuthChange = useCallback((user: any) => {
@@ -172,26 +191,38 @@ function HomeContent() {
     }
   }, [isAuthenticated, selectedContact, showToast]);
 
-  // Filter contacts that have valid locations for the map
-  const mappableContacts = useMemo(() => {
-    return contacts.filter(c => c.location.lat !== 0 || c.location.lng !== 0);
-  }, [contacts]);
+  // Combine personal contacts with community profiles for the map
+  const allPeopleOnMap = useMemo(() => {
+    const myContacts = contacts.filter(c => c.location.lat !== 0 || c.location.lng !== 0);
+    const community = communityProfiles.filter(c => c.location.lat !== 0 || c.location.lng !== 0);
+    // Dedupe: if a community profile matches a contact by email, prefer the contact
+    const contactEmails = new Set(myContacts.map(c => c.email?.toLowerCase()).filter(Boolean));
+    const uniqueCommunity = community.filter(c => !c.email || !contactEmails.has(c.email.toLowerCase()));
+    return [...myContacts, ...uniqueCommunity];
+  }, [contacts, communityProfiles]);
 
   const filteredIds = useMemo(() => {
     if (!searchQuery.trim()) return new Set<string>();
     return new Set(
-      mappableContacts
+      allPeopleOnMap
         .filter((contact) => matchesSearch(contact, searchQuery))
         .map((c) => c.id)
     );
-  }, [searchQuery, mappableContacts]);
+  }, [searchQuery, allPeopleOnMap]);
 
   const hasActiveSearch = searchQuery.trim().length > 0;
+
+  // All searchable people (contacts + community)
+  const allSearchablePeople = useMemo(() => {
+    const contactEmails = new Set(contacts.map(c => c.email?.toLowerCase()).filter(Boolean));
+    const uniqueCommunity = communityProfiles.filter(c => !c.email || !contactEmails.has(c.email.toLowerCase()));
+    return [...contacts, ...uniqueCommunity];
+  }, [contacts, communityProfiles]);
 
   return (
     <main className="relative w-screen h-screen overflow-hidden">
       <Map
-        contacts={mappableContacts}
+        contacts={allPeopleOnMap}
         filteredIds={filteredIds}
         hasActiveSearch={hasActiveSearch}
         onSelectContact={setSelectedContact}
@@ -200,7 +231,7 @@ function HomeContent() {
 
       {/* Unified search bar - handles search, find, add, invite */}
       <UnifiedSearch
-        contacts={contacts}
+        contacts={allSearchablePeople}
         onSearch={setSearchQuery}
         onSelectContact={setSelectedContact}
         onAddPerson={handleAddPerson}
@@ -212,10 +243,18 @@ function HomeContent() {
         <Logo height={20} className="text-neutral-500" />
       </div>
 
-      {/* Auth + Import buttons - top-right */}
+      {/* Auth + Import + Profile buttons - top-right */}
       <div className="absolute top-4 right-4 z-[900] flex items-center gap-2">
         {isAuthenticated && (
-          <ImportButton onImport={handleImport} onError={handleImportError} />
+          <>
+            <button
+              onClick={() => setShowProfileSetup(true)}
+              className="px-3 py-2 rounded-full bg-white/90 backdrop-blur-sm border border-neutral-200 shadow-sm hover:bg-neutral-50 transition-colors text-neutral-700 text-sm font-medium"
+            >
+              My Profile
+            </button>
+            <ImportButton onImport={handleImport} onError={handleImportError} />
+          </>
         )}
         <AuthButton onAuthChange={handleAuthChange} />
       </div>
@@ -252,6 +291,16 @@ function HomeContent() {
         onClose={() => setSelectedContact(null)}
         onUpdate={handleUpdateContact}
         onPhotoUpload={handlePhotoUpload}
+      />
+
+      {/* Profile setup modal */}
+      <ProfileSetup
+        isOpen={showProfileSetup}
+        onClose={() => setShowProfileSetup(false)}
+        onSaved={() => {
+          loadCommunityProfiles();
+          showToast('Profile saved! Others can now find you.', 'success');
+        }}
       />
     </main>
   );
