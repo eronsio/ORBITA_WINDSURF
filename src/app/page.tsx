@@ -340,11 +340,14 @@ function HomeContent() {
 
   const hasActiveSearch = searchQuery.trim().length > 0;
 
-  // Get active group name for navigation
-  const activeGroupName = useMemo(() => {
+  // Get active group name and color for navigation
+  const activeGroup = useMemo(() => {
     if (!activeGroupId) return undefined;
-    return groups.find(g => g.id === activeGroupId)?.name;
+    return groups.find(g => g.id === activeGroupId);
   }, [activeGroupId, groups]);
+
+  const activeGroupName = activeGroup?.name;
+  const activeGroupColor = activeGroup?.color;
 
   return (
     <main className="relative w-screen h-screen overflow-hidden">
@@ -354,6 +357,9 @@ function HomeContent() {
         hasActiveSearch={hasActiveSearch}
         onSelectContact={setSelectedContact}
         selectedContactId={selectedContact?.id}
+        activeGroupColor={activeGroupColor}
+        contactGroupsMap={contactGroupsMap}
+        activeGroupId={activeGroupId}
       />
 
       {/* Chat view - full screen when active */}
@@ -365,17 +371,41 @@ function HomeContent() {
         </div>
       )}
 
-      {/* Top-left: Logo + Groups */}
+      {/* Top-left: Logo + Groups with swipe */}
       <div className="absolute top-4 left-4 z-[900] flex flex-col gap-2">
         <Logo height={28} className="text-neutral-800" />
         {isAuthenticated && (
-          <button
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/90 backdrop-blur-sm border border-neutral-200 shadow-sm text-neutral-700 text-sm font-medium cursor-pointer select-none"
+            style={{ borderColor: activeGroupColor || undefined }}
             onClick={() => setShowGroupsPanel(true)}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/90 backdrop-blur-sm border border-neutral-200 shadow-sm hover:bg-neutral-50 transition-colors text-neutral-700 text-sm font-medium"
+            onTouchStart={(e) => {
+              const touch = e.touches[0];
+              (e.currentTarget as any)._touchStartX = touch.clientX;
+            }}
+            onTouchEnd={(e) => {
+              const startX = (e.currentTarget as any)._touchStartX;
+              const endX = e.changedTouches[0].clientX;
+              const diff = endX - startX;
+              if (Math.abs(diff) > 50) {
+                // Swipe detected
+                const allGroupIds = [null, ...groups.map(g => g.id)];
+                const currentIndex = allGroupIds.indexOf(activeGroupId);
+                if (diff > 0) {
+                  // Swipe right - go to previous group
+                  const newIndex = currentIndex > 0 ? currentIndex - 1 : allGroupIds.length - 1;
+                  setActiveGroupId(allGroupIds[newIndex]);
+                } else {
+                  // Swipe left - go to next group
+                  const newIndex = currentIndex < allGroupIds.length - 1 ? currentIndex + 1 : 0;
+                  setActiveGroupId(allGroupIds[newIndex]);
+                }
+              }
+            }}
           >
-            <Users className="w-4 h-4" />
+            <Users className="w-4 h-4" style={{ color: activeGroupColor || undefined }} />
             <span className="max-w-28 truncate">{activeGroupName || 'Everyone'}</span>
-          </button>
+          </div>
         )}
       </div>
 

@@ -16,18 +16,27 @@ interface MapProps {
   hasActiveSearch: boolean;
   onSelectContact: (contact: Contact) => void;
   selectedContactId?: string;
+  activeGroupColor?: string;
+  contactGroupsMap?: globalThis.Map<string, string[]>;
+  activeGroupId?: string | null;
 }
 
-function createContactIcon(contact: Contact, isHighlighted: boolean, isFaded: boolean): L.DivIcon {
+function createContactIcon(
+  contact: Contact, 
+  isHighlighted: boolean, 
+  isFaded: boolean,
+  groupColor?: string
+): L.DivIcon {
   const initials = getInitials(contact.firstName, contact.lastName);
   const stateClass = isHighlighted ? 'highlighted' : isFaded ? 'faded' : '';
   const statusClass = contact.status === 'unclaimed' ? 'unclaimed' : contact.status === 'invited' ? 'invited' : '';
+  const borderStyle = groupColor ? `border: 3px solid ${groupColor};` : '';
   
   const html = contact.photoUrl
-    ? `<div class="contact-pin ${stateClass} ${statusClass}">
+    ? `<div class="contact-pin ${stateClass} ${statusClass}" style="${borderStyle}">
         <img src="${contact.photoUrl}" alt="${contact.firstName}" />
       </div>`
-    : `<div class="contact-pin ${stateClass} ${statusClass}">
+    : `<div class="contact-pin ${stateClass} ${statusClass}" style="${borderStyle}">
         <div class="initials">${initials}</div>
       </div>`;
 
@@ -45,6 +54,9 @@ export default function Map({
   hasActiveSearch,
   onSelectContact,
   selectedContactId,
+  activeGroupColor,
+  contactGroupsMap,
+  activeGroupId,
 }: MapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<globalThis.Map<string, L.Marker>>(new globalThis.Map());
@@ -132,9 +144,18 @@ export default function Map({
     contacts.forEach((contact) => {
       const isHighlighted = hasActiveSearch && filteredIds.has(contact.id);
       const isFaded = hasActiveSearch && !filteredIds.has(contact.id);
+      
+      // Check if contact belongs to active group and get color
+      let groupColor: string | undefined;
+      if (activeGroupId && activeGroupColor && contactGroupsMap) {
+        const contactGroups = contactGroupsMap.get(contact.id) || [];
+        if (contactGroups.includes(activeGroupId)) {
+          groupColor = activeGroupColor;
+        }
+      }
 
       const marker = L.marker([contact.location.lat, contact.location.lng], {
-        icon: createContactIcon(contact, isHighlighted, isFaded),
+        icon: createContactIcon(contact, isHighlighted, isFaded, groupColor),
       });
 
       marker.on('click', () => {
@@ -144,9 +165,9 @@ export default function Map({
       clusterGroup.addLayer(marker);
       markersRef.current.set(contact.id, marker);
     });
-  }, [contacts, filteredIds, hasActiveSearch, onSelectContact]);
+  }, [contacts, filteredIds, hasActiveSearch, onSelectContact, activeGroupId, activeGroupColor, contactGroupsMap]);
 
-  // Update marker icons when search changes
+  // Update marker icons when search or group changes
   useEffect(() => {
     markersRef.current.forEach((marker, id) => {
       const contact = contacts.find((c) => c.id === id);
@@ -154,10 +175,19 @@ export default function Map({
 
       const isHighlighted = hasActiveSearch && filteredIds.has(id);
       const isFaded = hasActiveSearch && !filteredIds.has(id);
+      
+      // Check if contact belongs to active group
+      let groupColor: string | undefined;
+      if (activeGroupId && activeGroupColor && contactGroupsMap) {
+        const contactGroups = contactGroupsMap.get(contact.id) || [];
+        if (contactGroups.includes(activeGroupId)) {
+          groupColor = activeGroupColor;
+        }
+      }
 
-      marker.setIcon(createContactIcon(contact, isHighlighted, isFaded));
+      marker.setIcon(createContactIcon(contact, isHighlighted, isFaded, groupColor));
     });
-  }, [contacts, filteredIds, hasActiveSearch]);
+  }, [contacts, filteredIds, hasActiveSearch, activeGroupId, activeGroupColor, contactGroupsMap]);
 
   // No longer pan/zoom to selected contact - just open the panel
   // Removed zoom behavior per UX requirements
