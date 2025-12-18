@@ -371,31 +371,50 @@ function HomeContent() {
         </div>
       )}
 
-      {/* Top-left: Logo + Groups with swipe/scroll */}
+      {/* Top-left: Logo + Groups with arrow navigation */}
       <div className="absolute top-4 left-4 z-[900] flex flex-col gap-2">
         <Logo height={28} className="text-neutral-800" />
         {isAuthenticated && (
-          <div
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/90 backdrop-blur-sm border-2 shadow-sm text-neutral-700 text-sm font-medium cursor-pointer select-none"
-            style={{ borderColor: activeGroupColor || '#e5e7eb' }}
-            onClick={() => setShowGroupsPanel(true)}
-            onWheel={(e) => {
-              e.preventDefault();
-              const allGroupIds: (string | null)[] = [null, ...groups.map(g => g.id)];
-              const currentIndex = allGroupIds.indexOf(activeGroupId);
-              if (e.deltaX > 20 || e.deltaY > 20) {
-                // Scroll right/down - next group
-                const newIndex = currentIndex < allGroupIds.length - 1 ? currentIndex + 1 : 0;
-                setActiveGroupId(allGroupIds[newIndex]);
-              } else if (e.deltaX < -20 || e.deltaY < -20) {
-                // Scroll left/up - previous group
+          <div className="flex items-center gap-1">
+            {/* Previous group button */}
+            <button
+              onClick={() => {
+                const allGroupIds: (string | null)[] = [null, ...groups.map(g => g.id)];
+                const currentIndex = allGroupIds.indexOf(activeGroupId);
                 const newIndex = currentIndex > 0 ? currentIndex - 1 : allGroupIds.length - 1;
                 setActiveGroupId(allGroupIds[newIndex]);
-              }
-            }}
-          >
-            <Users className="w-4 h-4" style={{ color: activeGroupColor || undefined }} />
-            <span className="max-w-28 truncate">{activeGroupName || 'Everyone'}</span>
+              }}
+              className="p-1.5 rounded-lg bg-white/90 backdrop-blur-sm border border-neutral-200 shadow-sm hover:bg-neutral-50 transition-colors"
+            >
+              <svg className="w-4 h-4 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            
+            {/* Group name button */}
+            <button
+              onClick={() => setShowGroupsPanel(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/90 backdrop-blur-sm border-2 shadow-sm text-neutral-700 text-sm font-medium transition-all duration-200"
+              style={{ borderColor: activeGroupColor || '#e5e7eb' }}
+            >
+              <Users className="w-4 h-4" style={{ color: activeGroupColor || undefined }} />
+              <span className="max-w-28 truncate">{activeGroupName || 'Everyone'}</span>
+            </button>
+            
+            {/* Next group button */}
+            <button
+              onClick={() => {
+                const allGroupIds: (string | null)[] = [null, ...groups.map(g => g.id)];
+                const currentIndex = allGroupIds.indexOf(activeGroupId);
+                const newIndex = currentIndex < allGroupIds.length - 1 ? currentIndex + 1 : 0;
+                setActiveGroupId(allGroupIds[newIndex]);
+              }}
+              className="p-1.5 rounded-lg bg-white/90 backdrop-blur-sm border border-neutral-200 shadow-sm hover:bg-neutral-50 transition-colors"
+            >
+              <svg className="w-4 h-4 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
           </div>
         )}
       </div>

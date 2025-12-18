@@ -69,51 +69,58 @@ export default function Map({
     const mapContainer = document.getElementById('map');
     if (!mapContainer) return;
 
-    // Calculate minimum zoom to fill viewport without gray areas
-    const containerWidth = mapContainer.clientWidth;
-    const containerHeight = mapContainer.clientHeight;
+    // Get viewport dimensions
+    const containerWidth = window.innerWidth;
+    const containerHeight = window.innerHeight;
     
-    // World is 360 degrees wide, 170 degrees tall (85N to 85S)
-    // At zoom 0, world is 256px. Each zoom level doubles it.
-    // We need zoom where: 256 * 2^zoom >= max(containerWidth, containerHeight * (360/170))
-    const worldWidth = 360;
-    const worldHeight = 170; // -85 to 85
-    const aspectRatio = containerWidth / containerHeight;
-    const worldAspect = worldWidth / worldHeight;
-    
-    let minZoom: number;
-    if (aspectRatio > worldAspect) {
-      // Container is wider than world aspect - constrain by width
-      minZoom = Math.ceil(Math.log2(containerWidth / 256));
-    } else {
-      // Container is taller than world aspect - constrain by height
-      minZoom = Math.ceil(Math.log2((containerHeight * worldWidth / worldHeight) / 256));
-    }
-    minZoom = Math.max(2, minZoom); // At least zoom 2
+    // Calculate minZoom so world fills viewport
+    // At zoom level z, world width in pixels = 256 * 2^z
+    // We need the world to be at least as wide as the container
+    const minZoomWidth = Math.log2(containerWidth / 256);
+    const minZoomHeight = Math.log2(containerHeight / 256);
+    const minZoom = Math.ceil(Math.max(minZoomWidth, minZoomHeight, 1));
 
-    // Set bounds with padding to prevent any gray
-    const southWest = L.latLng(-85, -180);
-    const northEast = L.latLng(85, 180);
-    const bounds = L.latLngBounds(southWest, northEast);
+    // Bounds for the entire world
+    const bounds = L.latLngBounds(
+      L.latLng(-90, -180),
+      L.latLng(90, 180)
+    );
 
     const map = L.map('map', {
-      center: [20, 0],
+      center: [30, 0],
       zoom: minZoom,
       minZoom: minZoom,
       maxZoom: 18,
-      maxBounds: bounds.pad(0.1), // Small padding to prevent edge issues
+      maxBounds: bounds,
       maxBoundsViscosity: 1.0,
       zoomControl: true,
       attributionControl: true,
+      bounceAtZoomLimits: false,
     });
 
-    // Calm, ocean-focused tile layer (CartoDB Voyager - softer blues)
+    // Calm, ocean-focused tile layer
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
       subdomains: 'abcd',
       maxZoom: 20,
       noWrap: true,
     }).addTo(map);
+
+    // Handle window resize to update minZoom
+    const handleResize = () => {
+      const newWidth = window.innerWidth;
+      const newHeight = window.innerHeight;
+      const newMinZoom = Math.ceil(Math.max(
+        Math.log2(newWidth / 256),
+        Math.log2(newHeight / 256),
+        1
+      ));
+      map.setMinZoom(newMinZoom);
+      if (map.getZoom() < newMinZoom) {
+        map.setZoom(newMinZoom);
+      }
+    };
+    window.addEventListener('resize', handleResize);
 
     // Position zoom control
     map.zoomControl.setPosition('bottomright');
@@ -155,6 +162,7 @@ export default function Map({
     });
 
     return () => {
+      window.removeEventListener('resize', handleResize);
       map.remove();
       mapRef.current = null;
     };
