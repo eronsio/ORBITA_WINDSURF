@@ -3,9 +3,10 @@
 @tailwind utilities;
 
 :root {
-  --accent: #3B82F6;
-  --accent-light: #60A5FA;
-  --accent-dark: #2563EB;
+  --accent: #2563EB;
+  --accent-light: #3B82F6;
+  --accent-dark: #1D4ED8;
+  --ocean: #E8F4FC;
 }
 
 * {
@@ -18,9 +19,9 @@ body {
   overflow: hidden;
 }
 
-/* Leaflet overrides for minimal aesthetic */
+/* Leaflet overrides for calm, intentional aesthetic */
 .leaflet-container {
-  background: #F5F3F0;
+  background: var(--ocean);
   font-family: inherit;
 }
 

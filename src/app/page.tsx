@@ -7,6 +7,9 @@ import { ImportButton } from '@/components/ImportButton';
 import { UnifiedSearch } from '@/components/UnifiedSearch';
 import { AuthButton } from '@/components/AuthButton';
 import { ProfileSetup } from '@/components/ProfileSetup';
+import { GroupsPanel } from '@/components/GroupsPanel';
+import { ChatView } from '@/components/ChatView';
+import { Navigation, type ViewMode } from '@/components/Navigation';
 import { Logo } from '@/components/Logo';
 import { ToastProvider, useToast } from '@/components/Toast';
 import { 
@@ -19,10 +22,17 @@ import {
 import {
   fetchDiscoverableProfiles,
   profileToContact,
-  type Profile,
 } from '@/lib/supabase/profiles';
+import {
+  fetchGroupsWithCounts,
+  createGroup,
+  deleteGroup,
+  fetchAllContactGroups,
+} from '@/lib/supabase/groups';
+import { getUnreadCount } from '@/lib/supabase/chat';
 import { matchesSearch } from '@/lib/utils';
 import type { Contact } from '@/types/contact';
+import type { Group } from '@/types/group';
 
 const Map = dynamic(() => import('@/components/Map'), {
   ssr: false,
@@ -41,16 +51,31 @@ function HomeContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
+  
+  // New state for groups, chat, and navigation
+  const [activeView, setActiveView] = useState<ViewMode>('map');
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
+  const [contactGroupsMap, setContactGroupsMap] = useState<Map<string, string[]>>(new Map());
+  const [showGroupsPanel, setShowGroupsPanel] = useState(false);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
+  
   const { showToast } = useToast();
 
-  // Load contacts and community profiles when authenticated
+  // Load all data when authenticated
   useEffect(() => {
     if (isAuthenticated) {
       loadContacts();
       loadCommunityProfiles();
+      loadGroups();
+      loadContactGroups();
+      loadUnreadCount();
     } else {
       setContacts([]);
       setCommunityProfiles([]);
+      setGroups([]);
+      setContactGroupsMap(new Map());
+      setUnreadChatCount(0);
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -74,6 +99,29 @@ function HomeContent() {
     } else if (data) {
       setCommunityProfiles(data.map(profileToContact));
     }
+  };
+
+  const loadGroups = async () => {
+    const { data, error } = await fetchGroupsWithCounts();
+    if (error) {
+      console.error('Failed to load groups:', error);
+    } else if (data) {
+      setGroups(data);
+    }
+  };
+
+  const loadContactGroups = async () => {
+    const { data, error } = await fetchAllContactGroups();
+    if (error) {
+      console.error('Failed to load contact groups:', error);
+    } else if (data) {
+      setContactGroupsMap(data);
+    }
+  };
+
+  const loadUnreadCount = async () => {
+    const { count } = await getUnreadCount();
+    setUnreadChatCount(count);
   };
 
   const handleAuthChange = useCallback((user: any) => {
@@ -191,15 +239,54 @@ function HomeContent() {
     }
   }, [isAuthenticated, selectedContact, showToast]);
 
-  // Combine personal contacts with community profiles for the map
-  const allPeopleOnMap = useMemo(() => {
-    const myContacts = contacts.filter(c => c.location.lat !== 0 || c.location.lng !== 0);
-    const community = communityProfiles.filter(c => c.location.lat !== 0 || c.location.lng !== 0);
-    // Dedupe: if a community profile matches a contact by email, prefer the contact
-    const contactEmails = new Set(myContacts.map(c => c.email?.toLowerCase()).filter(Boolean));
-    const uniqueCommunity = community.filter(c => !c.email || !contactEmails.has(c.email.toLowerCase()));
-    return [...myContacts, ...uniqueCommunity];
+  // Group handlers
+  const handleCreateGroup = useCallback(async (group: Partial<Group>) => {
+    const { data, error } = await createGroup(group);
+    if (error) {
+      showToast(`Failed to create group: ${error}`, 'error');
+    } else if (data) {
+      setGroups(prev => [...prev, data]);
+      showToast(`Created "${data.name}"`, 'success');
+    }
+  }, [showToast]);
+
+  const handleDeleteGroup = useCallback(async (id: string) => {
+    const { error } = await deleteGroup(id);
+    if (error) {
+      showToast(`Failed to delete group: ${error}`, 'error');
+    } else {
+      setGroups(prev => prev.filter(g => g.id !== id));
+      if (activeGroupId === id) {
+        setActiveGroupId(null);
+      }
+    }
+  }, [activeGroupId, showToast]);
+
+  const handleUpdateGroup = useCallback(async (id: string, updates: Partial<Group>) => {
+    // For now, just update locally - can add API call later
+    setGroups(prev => prev.map(g => g.id === id ? { ...g, ...updates } : g));
+  }, []);
+
+  // Combine personal contacts with community profiles
+  const allPeople = useMemo(() => {
+    const contactEmails = new Set(contacts.map(c => c.email?.toLowerCase()).filter(Boolean));
+    const uniqueCommunity = communityProfiles.filter(c => !c.email || !contactEmails.has(c.email.toLowerCase()));
+    return [...contacts, ...uniqueCommunity];
   }, [contacts, communityProfiles]);
+
+  // Filter by active group
+  const filteredByGroup = useMemo(() => {
+    if (!activeGroupId) return allPeople;
+    return allPeople.filter(c => {
+      const groups = contactGroupsMap.get(c.id) || [];
+      return groups.includes(activeGroupId);
+    });
+  }, [allPeople, activeGroupId, contactGroupsMap]);
+
+  // Filter for map (only those with valid locations)
+  const allPeopleOnMap = useMemo(() => {
+    return filteredByGroup.filter(c => c.location.lat !== 0 || c.location.lng !== 0);
+  }, [filteredByGroup]);
 
   const filteredIds = useMemo(() => {
     if (!searchQuery.trim()) return new Set<string>();
@@ -212,12 +299,11 @@ function HomeContent() {
 
   const hasActiveSearch = searchQuery.trim().length > 0;
 
-  // All searchable people (contacts + community)
-  const allSearchablePeople = useMemo(() => {
-    const contactEmails = new Set(contacts.map(c => c.email?.toLowerCase()).filter(Boolean));
-    const uniqueCommunity = communityProfiles.filter(c => !c.email || !contactEmails.has(c.email.toLowerCase()));
-    return [...contacts, ...uniqueCommunity];
-  }, [contacts, communityProfiles]);
+  // Get active group name for navigation
+  const activeGroupName = useMemo(() => {
+    if (!activeGroupId) return undefined;
+    return groups.find(g => g.id === activeGroupId)?.name;
+  }, [activeGroupId, groups]);
 
   return (
     <main className="relative w-screen h-screen overflow-hidden">
@@ -229,55 +315,80 @@ function HomeContent() {
         selectedContactId={selectedContact?.id}
       />
 
-      {/* Unified search bar - handles search, find, add, invite */}
-      <UnifiedSearch
-        contacts={allSearchablePeople}
-        onSearch={setSearchQuery}
-        onSelectContact={setSelectedContact}
-        onAddPerson={handleAddPerson}
-        onInvite={handleInvite}
-      />
-
-      {/* Logo - subtle, bottom-left */}
-      <div className="absolute bottom-4 left-4 z-[1000] opacity-50 hover:opacity-80 transition-opacity">
-        <Logo height={20} className="text-neutral-500" />
-      </div>
-
-      {/* Auth + Import + Profile buttons - top-right */}
-      <div className="absolute top-4 right-4 z-[900] flex items-center gap-2">
-        {isAuthenticated && (
-          <>
-            <button
-              onClick={() => setShowProfileSetup(true)}
-              className="px-3 py-2 rounded-full bg-white/90 backdrop-blur-sm border border-neutral-200 shadow-sm hover:bg-neutral-50 transition-colors text-neutral-700 text-sm font-medium"
-            >
-              My Profile
-            </button>
-            <ImportButton onImport={handleImport} onError={handleImportError} />
-          </>
-        )}
-        <AuthButton onAuthChange={handleAuthChange} />
-      </div>
-
-      {/* Loading indicator */}
-      {loading && isAuthenticated && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[1000]">
-          <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm text-sm text-neutral-500">
-            Loading contacts...
-          </div>
+      {/* Chat view - full screen when active */}
+      {activeView === 'chat' && isAuthenticated && (
+        <div className="absolute inset-0 z-[1100] bg-white">
+          <ChatView
+            onBack={() => setActiveView('map')}
+          />
         </div>
+      )}
+
+      {/* Map UI elements - only show when map is active */}
+      {activeView === 'map' && (
+        <>
+          {/* Unified search bar */}
+          <UnifiedSearch
+            contacts={filteredByGroup}
+            onSearch={setSearchQuery}
+            onSelectContact={setSelectedContact}
+            onAddPerson={handleAddPerson}
+            onInvite={handleInvite}
+          />
+
+          {/* Auth + Import + Profile buttons - top-right */}
+          <div className="absolute top-4 right-4 z-[900] flex items-center gap-2">
+            {isAuthenticated && (
+              <>
+                <button
+                  onClick={() => setShowProfileSetup(true)}
+                  className="px-3 py-2 rounded-full bg-white/90 backdrop-blur-sm border border-neutral-200 shadow-sm hover:bg-neutral-50 transition-colors text-neutral-700 text-sm font-medium"
+                >
+                  My Profile
+                </button>
+                <ImportButton onImport={handleImport} onError={handleImportError} />
+              </>
+            )}
+            <AuthButton onAuthChange={handleAuthChange} />
+          </div>
+
+          {/* Loading indicator */}
+          {loading && isAuthenticated && (
+            <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[1000]">
+              <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm text-sm text-neutral-500">
+                Loading...
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Logo - bottom-left, always visible */}
+      <div className="absolute bottom-20 left-4 z-[900] opacity-60 hover:opacity-90 transition-opacity">
+        <Logo height={24} className="text-neutral-700" />
+      </div>
+
+      {/* Navigation bar - bottom center */}
+      {isAuthenticated && (
+        <Navigation
+          activeView={activeView}
+          onViewChange={setActiveView}
+          unreadCount={unreadChatCount}
+          onGroupsClick={() => setShowGroupsPanel(true)}
+          activeGroupName={activeGroupName}
+        />
       )}
 
       {/* Welcome message for unauthenticated users */}
       {!isAuthenticated && !loading && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[500] text-center">
           <div className="bg-white/95 backdrop-blur-sm p-8 rounded-2xl shadow-xl max-w-sm">
-            <Logo height={32} className="text-neutral-800 mx-auto mb-4" />
+            <Logo height={36} className="text-neutral-800 mx-auto mb-4" />
             <h1 className="text-xl font-semibold text-neutral-800 mb-2">
               Welcome to Orbita
             </h1>
             <p className="text-neutral-600 text-sm mb-4">
-              Your personal map of people and places. Sign in to start adding your contacts.
+              Your relationship landscape. See who matters, where they are, and stay intentionally connected.
             </p>
             <p className="text-neutral-400 text-xs">
               Click &quot;Sign in&quot; in the top right to get started
@@ -291,6 +402,18 @@ function HomeContent() {
         onClose={() => setSelectedContact(null)}
         onUpdate={handleUpdateContact}
         onPhotoUpload={handlePhotoUpload}
+      />
+
+      {/* Groups panel */}
+      <GroupsPanel
+        isOpen={showGroupsPanel}
+        onClose={() => setShowGroupsPanel(false)}
+        groups={groups}
+        activeGroupId={activeGroupId}
+        onSelectGroup={setActiveGroupId}
+        onCreateGroup={handleCreateGroup}
+        onUpdateGroup={handleUpdateGroup}
+        onDeleteGroup={handleDeleteGroup}
       />
 
       {/* Profile setup modal */}

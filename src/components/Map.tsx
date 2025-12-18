@@ -54,27 +54,27 @@ export default function Map({
   useEffect(() => {
     if (mapRef.current) return;
 
-    // World bounds to constrain the map
+    // Constrain to avoid showing empty space - focus on populated areas
     const worldBounds = L.latLngBounds(
-      L.latLng(-85, -180),
-      L.latLng(85, 180)
+      L.latLng(-60, -180),  // Cut off Antarctica
+      L.latLng(75, 180)     // Slight trim of Arctic
     );
 
     const map = L.map('map', {
-      center: [30, 0],
+      center: [25, 0],
       zoom: 2,
       minZoom: 2,
       maxZoom: 18,
       maxBounds: worldBounds,
-      maxBoundsViscosity: 1.0,
+      maxBoundsViscosity: 0.9,
       worldCopyJump: false,
       zoomControl: true,
       attributionControl: true,
     });
 
-    // Minimal, neutral tile layer (CartoDB Positron)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    // Calm, ocean-focused tile layer (CartoDB Voyager - softer blues)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
       subdomains: 'abcd',
       maxZoom: 20,
       noWrap: true,
