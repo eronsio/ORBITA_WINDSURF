@@ -38,6 +38,7 @@ export function AttributeCategories({
   const [newCategory, setNewCategory] = useState('');
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newAttributes, setNewAttributes] = useState<Record<string, { name: string; value: string }>>({});
+  const [pendingCategories, setPendingCategories] = useState<string[]>([]);
 
   // Group attributes by category
   const categorizedAttributes = Object.entries(attributes)
@@ -49,7 +50,13 @@ export function AttributeCategories({
       return acc;
     }, {} as Record<string, Array<{ key: string; attribute: string; value: string }>>);
 
-  const categories = Object.keys(categorizedAttributes).sort((a, b) => {
+  // Combine categories from attributes and pending categories
+  const allCategoryNames = new Set([
+    ...Object.keys(categorizedAttributes),
+    ...pendingCategories,
+  ]);
+  
+  const categories = Array.from(allCategoryNames).sort((a, b) => {
     if (a === 'General') return -1;
     if (b === 'General') return 1;
     return a.localeCompare(b);
@@ -70,6 +77,10 @@ export function AttributeCategories({
   const handleAddCategory = () => {
     if (!newCategory.trim()) return;
     const categoryName = newCategory.trim();
+    
+    // Add to pending categories (will show even without attributes)
+    setPendingCategories(prev => [...prev, categoryName]);
+    
     setExpandedCategories(prev => new Set([...Array.from(prev), categoryName]));
     setNewAttributes(prev => ({
       ...prev,
@@ -84,7 +95,11 @@ export function AttributeCategories({
     if (!newAttr?.name.trim()) return;
     
     const key = createAttributeKey(category, newAttr.name.trim());
-    onAttributeChange(key, newAttr.value);
+    onAttributeChange(key, newAttr.value || ' '); // Use space if empty to ensure it saves
+    
+    // Remove from pending categories since it now has a real attribute
+    setPendingCategories(prev => prev.filter(c => c !== category));
+    
     setNewAttributes(prev => ({
       ...prev,
       [category]: { name: '', value: '' },

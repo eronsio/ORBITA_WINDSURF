@@ -54,12 +54,19 @@ export default function Map({
   useEffect(() => {
     if (mapRef.current) return;
 
+    // Bounds to prevent showing gray areas
+    const bounds = L.latLngBounds(
+      L.latLng(-85, -180),
+      L.latLng(85, 180)
+    );
+
     const map = L.map('map', {
       center: [20, 0],
       zoom: 2,
-      minZoom: 1,
+      minZoom: 2,
       maxZoom: 18,
-      worldCopyJump: true,
+      maxBounds: bounds,
+      maxBoundsViscosity: 1.0,
       zoomControl: true,
       attributionControl: true,
     });
@@ -69,6 +76,7 @@ export default function Map({
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
       subdomains: 'abcd',
       maxZoom: 20,
+      noWrap: true,
     }).addTo(map);
 
     // Position zoom control
