@@ -1,15 +1,17 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowLeft, Send, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Send, MessageCircle, Search, Plus, X } from 'lucide-react';
 import { cn, getInitials } from '@/lib/utils';
 import { 
   fetchConversations, 
   fetchMessages, 
   sendMessage, 
   markMessagesAsRead,
-  subscribeToMessages 
+  subscribeToMessages,
+  getOrCreateConversation 
 } from '@/lib/supabase/chat';
+import { fetchDiscoverableProfiles, type Profile } from '@/lib/supabase/profiles';
 import type { Conversation, Message } from '@/types/chat';
 
 interface ChatViewProps {
@@ -24,6 +26,10 @@ export function ChatView({ onBack, onSelectProfile }: ChatViewProps) {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [showNewChat, setShowNewChat] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Profile[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load conversations
@@ -65,6 +71,51 @@ export function ChatView({ onBack, onSelectProfile }: ChatViewProps) {
       setConversations(data);
     }
     setLoading(false);
+  };
+
+  // Search for users to start new chat
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    const searchUsers = async () => {
+      setSearchLoading(true);
+      const { data } = await fetchDiscoverableProfiles();
+      if (data) {
+        const query = searchQuery.toLowerCase();
+        const filtered = data.filter(p => 
+          p.display_name.toLowerCase().includes(query) ||
+          p.email?.toLowerCase().includes(query)
+        );
+        setSearchResults(filtered);
+      }
+      setSearchLoading(false);
+    };
+
+    const debounce = setTimeout(searchUsers, 300);
+    return () => clearTimeout(debounce);
+  }, [searchQuery]);
+
+  const startNewChat = async (profile: Profile) => {
+    const { data: conversationId, error } = await getOrCreateConversation(profile.id);
+    if (conversationId) {
+      // Create a temporary conversation object
+      const newConv: Conversation = {
+        id: conversationId,
+        otherUserId: profile.id,
+        otherUserName: profile.display_name,
+        otherUserPhoto: profile.photo_url || undefined,
+        unreadCount: 0,
+        createdAt: new Date().toISOString(),
+      };
+      setActiveConversation(newConv);
+      setShowNewChat(false);
+      setSearchQuery('');
+      // Refresh conversations list
+      loadConversations();
+    }
   };
 
   const loadMessages = async (conversationId: string) => {
@@ -109,19 +160,116 @@ export function ChatView({ onBack, onSelectProfile }: ChatViewProps) {
     }
   };
 
-  // Conversation list view
-  if (!activeConversation) {
+  // New chat search view
+  if (showNewChat) {
     return (
       <div className="h-full flex flex-col bg-white">
         {/* Header */}
         <div className="flex items-center gap-3 p-4 border-b border-neutral-100">
           <button
-            onClick={onBack}
+            onClick={() => {
+              setShowNewChat(false);
+              setSearchQuery('');
+            }}
             className="p-2 -ml-2 rounded-full hover:bg-neutral-100 transition-colors"
           >
             <ArrowLeft className="w-5 h-5 text-neutral-600" />
           </button>
-          <h1 className="text-lg font-semibold text-neutral-800">Messages</h1>
+          <h1 className="text-lg font-semibold text-neutral-800">New Chat</h1>
+        </div>
+
+        {/* Search input */}
+        <div className="p-4 border-b border-neutral-100">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by name..."
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+              autoFocus
+            />
+          </div>
+        </div>
+
+        {/* Search results */}
+        <div className="flex-1 overflow-y-auto">
+          {searchLoading ? (
+            <div className="flex items-center justify-center h-32 text-neutral-400">
+              Searching...
+            </div>
+          ) : searchQuery && searchResults.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-32 text-center px-8">
+              <p className="text-neutral-500">No users found</p>
+            </div>
+          ) : searchResults.length > 0 ? (
+            <div className="divide-y divide-neutral-50">
+              {searchResults.map((profile) => (
+                <button
+                  key={profile.id}
+                  onClick={() => startNewChat(profile)}
+                  className="w-full flex items-center gap-3 p-4 hover:bg-neutral-50 transition-colors text-left"
+                >
+                  <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
+                    {profile.photo_url ? (
+                      <img
+                        src={profile.photo_url}
+                        alt={profile.display_name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-accent-light to-accent flex items-center justify-center text-white font-medium">
+                        {getInitials(profile.display_name, '')}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-neutral-800 truncate">
+                      {profile.display_name}
+                    </p>
+                    {profile.city && (
+                      <p className="text-sm text-neutral-500 truncate">
+                        {profile.city}{profile.country ? `, ${profile.country}` : ''}
+                      </p>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-32 text-center px-8">
+              <p className="text-neutral-400 text-sm">
+                Search for someone to start a conversation
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Conversation list view
+  if (!activeConversation) {
+    return (
+      <div className="h-full flex flex-col bg-white">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-neutral-100">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onBack}
+              className="p-2 -ml-2 rounded-full hover:bg-neutral-100 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 text-neutral-600" />
+            </button>
+            <h1 className="text-lg font-semibold text-neutral-800">Messages</h1>
+          </div>
+          <button
+            onClick={() => setShowNewChat(true)}
+            className="p-2 rounded-full hover:bg-neutral-100 transition-colors"
+          >
+            <Plus className="w-5 h-5 text-neutral-600" />
+          </button>
         </div>
 
         {/* Conversations list */}
@@ -136,9 +284,15 @@ export function ChatView({ onBack, onSelectProfile }: ChatViewProps) {
                 <MessageCircle className="w-8 h-8 text-neutral-400" />
               </div>
               <p className="text-neutral-600 font-medium mb-1">No conversations yet</p>
-              <p className="text-sm text-neutral-400">
-                Start a conversation from someone&apos;s profile
+              <p className="text-sm text-neutral-400 mb-4">
+                Start a conversation with someone
               </p>
+              <button
+                onClick={() => setShowNewChat(true)}
+                className="px-4 py-2 bg-accent text-white rounded-full text-sm font-medium hover:bg-accent-dark transition-colors"
+              >
+                New Chat
+              </button>
             </div>
           ) : (
             <div className="divide-y divide-neutral-50">

@@ -11,6 +11,7 @@ import { GroupsPanel } from '@/components/GroupsPanel';
 import { ChatView } from '@/components/ChatView';
 import { Navigation, type ViewMode } from '@/components/Navigation';
 import { Logo } from '@/components/Logo';
+import { Users, MessageCircle } from 'lucide-react';
 import { ToastProvider, useToast } from '@/components/Toast';
 import { 
   fetchContacts, 
@@ -324,6 +325,20 @@ function HomeContent() {
         </div>
       )}
 
+      {/* Top-left: Logo + Groups */}
+      <div className="absolute top-4 left-4 z-[900] flex flex-col gap-2">
+        <Logo height={28} className="text-neutral-800" />
+        {isAuthenticated && (
+          <button
+            onClick={() => setShowGroupsPanel(true)}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/90 backdrop-blur-sm border border-neutral-200 shadow-sm hover:bg-neutral-50 transition-colors text-neutral-700 text-sm font-medium"
+          >
+            <Users className="w-4 h-4" />
+            <span className="max-w-28 truncate">{activeGroupName || 'Everyone'}</span>
+          </button>
+        )}
+      </div>
+
       {/* Map UI elements - only show when map is active */}
       {activeView === 'map' && (
         <>
@@ -336,10 +351,21 @@ function HomeContent() {
             onInvite={handleInvite}
           />
 
-          {/* Auth + Import + Profile buttons - top-right */}
+          {/* Auth + Import + Profile + Chat buttons - top-right */}
           <div className="absolute top-4 right-4 z-[900] flex items-center gap-2">
             {isAuthenticated && (
               <>
+                <button
+                  onClick={() => setActiveView('chat')}
+                  className="relative p-2.5 rounded-full bg-white/90 backdrop-blur-sm border border-neutral-200 shadow-sm hover:bg-neutral-50 transition-colors"
+                >
+                  <MessageCircle className="w-5 h-5 text-neutral-600" />
+                  {unreadChatCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs font-medium flex items-center justify-center">
+                      {unreadChatCount > 9 ? '9+' : unreadChatCount}
+                    </span>
+                  )}
+                </button>
                 <button
                   onClick={() => setShowProfileSetup(true)}
                   className="px-3 py-2 rounded-full bg-white/90 backdrop-blur-sm border border-neutral-200 shadow-sm hover:bg-neutral-50 transition-colors text-neutral-700 text-sm font-medium"
@@ -361,22 +387,6 @@ function HomeContent() {
             </div>
           )}
         </>
-      )}
-
-      {/* Logo - bottom-left, always visible */}
-      <div className="absolute bottom-20 left-4 z-[900] opacity-60 hover:opacity-90 transition-opacity">
-        <Logo height={24} className="text-neutral-700" />
-      </div>
-
-      {/* Navigation bar - bottom center */}
-      {isAuthenticated && (
-        <Navigation
-          activeView={activeView}
-          onViewChange={setActiveView}
-          unreadCount={unreadChatCount}
-          onGroupsClick={() => setShowGroupsPanel(true)}
-          activeGroupName={activeGroupName}
-        />
       )}
 
       {/* Welcome message for unauthenticated users */}
@@ -402,6 +412,11 @@ function HomeContent() {
         onClose={() => setSelectedContact(null)}
         onUpdate={handleUpdateContact}
         onPhotoUpload={handlePhotoUpload}
+        onStartChat={(contact) => {
+          setSelectedContact(null);
+          setActiveView('chat');
+          // Chat will be started from the ChatView component
+        }}
       />
 
       {/* Groups panel */}

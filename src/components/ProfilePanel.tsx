@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
-import { X, Mail, ChevronDown, ChevronUp, MapPin, Globe, Camera } from 'lucide-react';
+import { X, Mail, ChevronDown, ChevronUp, MapPin, Globe, Camera, MessageCircle, Video, Phone, Plus, Trash2 } from 'lucide-react';
 import { cn, getInitials, getAge } from '@/lib/utils';
 import { EditableField } from './EditableField';
 import { EditableTags } from './EditableTags';
 import { EditableSocialLinks } from './EditableSocialLinks';
+import { AttributeCategories } from './AttributeCategories';
 import type { Contact, SocialLink } from '@/types/contact';
 
 interface ProfilePanelProps {
@@ -13,10 +14,11 @@ interface ProfilePanelProps {
   onClose: () => void;
   onUpdate?: (contact: Contact) => void;
   onPhotoUpload?: (contactId: string, file: File) => void;
+  onStartChat?: (contact: Contact) => void;
 }
 
 
-export function ProfilePanel({ contact, onClose, onUpdate, onPhotoUpload }: ProfilePanelProps) {
+export function ProfilePanel({ contact, onClose, onUpdate, onPhotoUpload, onStartChat }: ProfilePanelProps) {
   const [showContact, setShowContact] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -116,6 +118,7 @@ export function ProfilePanel({ contact, onClose, onUpdate, onPhotoUpload }: Prof
               onLanguagesChange={updateLanguages}
               onSocialLinksChange={updateSocialLinks}
               onPhotoClick={onPhotoUpload ? handlePhotoClick : undefined}
+              onStartChat={onStartChat ? () => onStartChat(contact) : undefined}
             />
           </div>
         </div>
@@ -153,6 +156,7 @@ export function ProfilePanel({ contact, onClose, onUpdate, onPhotoUpload }: Prof
               onLanguagesChange={updateLanguages}
               onSocialLinksChange={updateSocialLinks}
               onPhotoClick={onPhotoUpload ? handlePhotoClick : undefined}
+              onStartChat={onStartChat ? () => onStartChat(contact) : undefined}
             />
           </div>
         </div>
@@ -189,6 +193,7 @@ interface ProfileContentProps {
   onLanguagesChange: (languages: string[]) => void;
   onSocialLinksChange: (links: SocialLink[]) => void;
   onPhotoClick?: () => void;
+  onStartChat?: () => void;
 }
 
 function ProfileContent({
@@ -204,6 +209,7 @@ function ProfileContent({
   onLanguagesChange,
   onSocialLinksChange,
   onPhotoClick,
+  onStartChat,
 }: ProfileContentProps) {
   // Render text or editable field based on isEditable
   const renderField = (
@@ -286,6 +292,33 @@ function ProfileContent({
             {contact.status === 'unclaimed' ? 'Unclaimed' : 'Invited'}
           </div>
         )}
+
+        {/* Action buttons: Chat, Video, Audio */}
+        <div className="flex items-center justify-center gap-2 mb-4">
+          {onStartChat && (
+            <button
+              onClick={onStartChat}
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-accent text-white text-sm font-medium hover:bg-accent-dark transition-colors"
+            >
+              <MessageCircle className="w-4 h-4" />
+              Chat
+            </button>
+          )}
+          <button
+            onClick={() => {/* Video call - dead for now */}}
+            className="p-2.5 rounded-full bg-neutral-100 text-neutral-600 hover:bg-neutral-200 transition-colors"
+            title="Video call (coming soon)"
+          >
+            <Video className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => {/* Audio call - dead for now */}}
+            className="p-2.5 rounded-full bg-neutral-100 text-neutral-600 hover:bg-neutral-200 transition-colors"
+            title="Audio call (coming soon)"
+          >
+            <Phone className="w-5 h-5" />
+          </button>
+        </div>
 
         <h2 className="text-xl font-semibold text-neutral-900">
           {isEditable ? (
@@ -485,6 +518,13 @@ function ProfileContent({
           </div>
         )}
       </div>
+
+      {/* Attribute Categories */}
+      <AttributeCategories
+        attributes={contact.attributes}
+        isEditable={isEditable}
+        onAttributeChange={onAttributeChange}
+      />
     </div>
   );
 }
