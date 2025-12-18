@@ -56,7 +56,7 @@ function HomeContent() {
   const [activeView, setActiveView] = useState<ViewMode>('map');
   const [groups, setGroups] = useState<Group[]>([]);
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
-  const [contactGroupsMap, setContactGroupsMap] = useState<Map<string, string[]>>(new Map());
+  const [contactGroupsMap, setContactGroupsMap] = useState<globalThis.Map<string, string[]>>(new globalThis.Map());
   const [showGroupsPanel, setShowGroupsPanel] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   
@@ -74,7 +74,7 @@ function HomeContent() {
       setContacts([]);
       setCommunityProfiles([]);
       setGroups([]);
-      setContactGroupsMap(new Map());
+      setContactGroupsMap(new globalThis.Map());
       setUnreadChatCount(0);
       setLoading(false);
     }
