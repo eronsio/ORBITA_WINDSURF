@@ -66,17 +66,42 @@ export default function Map({
   useEffect(() => {
     if (mapRef.current) return;
 
-    // Set bounds to prevent gray margins - slightly larger than world to ensure coverage
+    const mapContainer = document.getElementById('map');
+    if (!mapContainer) return;
+
+    // Calculate minimum zoom to fill viewport without gray areas
+    const containerWidth = mapContainer.clientWidth;
+    const containerHeight = mapContainer.clientHeight;
+    
+    // World is 360 degrees wide, 170 degrees tall (85N to 85S)
+    // At zoom 0, world is 256px. Each zoom level doubles it.
+    // We need zoom where: 256 * 2^zoom >= max(containerWidth, containerHeight * (360/170))
+    const worldWidth = 360;
+    const worldHeight = 170; // -85 to 85
+    const aspectRatio = containerWidth / containerHeight;
+    const worldAspect = worldWidth / worldHeight;
+    
+    let minZoom: number;
+    if (aspectRatio > worldAspect) {
+      // Container is wider than world aspect - constrain by width
+      minZoom = Math.ceil(Math.log2(containerWidth / 256));
+    } else {
+      // Container is taller than world aspect - constrain by height
+      minZoom = Math.ceil(Math.log2((containerHeight * worldWidth / worldHeight) / 256));
+    }
+    minZoom = Math.max(2, minZoom); // At least zoom 2
+
+    // Set bounds with padding to prevent any gray
     const southWest = L.latLng(-85, -180);
     const northEast = L.latLng(85, 180);
     const bounds = L.latLngBounds(southWest, northEast);
 
     const map = L.map('map', {
       center: [20, 0],
-      zoom: 2,
-      minZoom: 2,
+      zoom: minZoom,
+      minZoom: minZoom,
       maxZoom: 18,
-      maxBounds: bounds,
+      maxBounds: bounds.pad(0.1), // Small padding to prevent edge issues
       maxBoundsViscosity: 1.0,
       zoomControl: true,
       attributionControl: true,
@@ -88,11 +113,7 @@ export default function Map({
       subdomains: 'abcd',
       maxZoom: 20,
       noWrap: true,
-      bounds: bounds,
     }).addTo(map);
-
-    // Fit map to bounds on load to ensure no margins
-    map.fitBounds(bounds);
 
     // Position zoom control
     map.zoomControl.setPosition('bottomright');
