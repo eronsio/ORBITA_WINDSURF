@@ -371,35 +371,26 @@ function HomeContent() {
         </div>
       )}
 
-      {/* Top-left: Logo + Groups with swipe */}
+      {/* Top-left: Logo + Groups with swipe/scroll */}
       <div className="absolute top-4 left-4 z-[900] flex flex-col gap-2">
         <Logo height={28} className="text-neutral-800" />
         {isAuthenticated && (
           <div
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/90 backdrop-blur-sm border border-neutral-200 shadow-sm text-neutral-700 text-sm font-medium cursor-pointer select-none"
-            style={{ borderColor: activeGroupColor || undefined }}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/90 backdrop-blur-sm border-2 shadow-sm text-neutral-700 text-sm font-medium cursor-pointer select-none"
+            style={{ borderColor: activeGroupColor || '#e5e7eb' }}
             onClick={() => setShowGroupsPanel(true)}
-            onTouchStart={(e) => {
-              const touch = e.touches[0];
-              (e.currentTarget as any)._touchStartX = touch.clientX;
-            }}
-            onTouchEnd={(e) => {
-              const startX = (e.currentTarget as any)._touchStartX;
-              const endX = e.changedTouches[0].clientX;
-              const diff = endX - startX;
-              if (Math.abs(diff) > 50) {
-                // Swipe detected
-                const allGroupIds = [null, ...groups.map(g => g.id)];
-                const currentIndex = allGroupIds.indexOf(activeGroupId);
-                if (diff > 0) {
-                  // Swipe right - go to previous group
-                  const newIndex = currentIndex > 0 ? currentIndex - 1 : allGroupIds.length - 1;
-                  setActiveGroupId(allGroupIds[newIndex]);
-                } else {
-                  // Swipe left - go to next group
-                  const newIndex = currentIndex < allGroupIds.length - 1 ? currentIndex + 1 : 0;
-                  setActiveGroupId(allGroupIds[newIndex]);
-                }
+            onWheel={(e) => {
+              e.preventDefault();
+              const allGroupIds: (string | null)[] = [null, ...groups.map(g => g.id)];
+              const currentIndex = allGroupIds.indexOf(activeGroupId);
+              if (e.deltaX > 20 || e.deltaY > 20) {
+                // Scroll right/down - next group
+                const newIndex = currentIndex < allGroupIds.length - 1 ? currentIndex + 1 : 0;
+                setActiveGroupId(allGroupIds[newIndex]);
+              } else if (e.deltaX < -20 || e.deltaY < -20) {
+                // Scroll left/up - previous group
+                const newIndex = currentIndex > 0 ? currentIndex - 1 : allGroupIds.length - 1;
+                setActiveGroupId(allGroupIds[newIndex]);
               }
             }}
           >

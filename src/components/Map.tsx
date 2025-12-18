@@ -66,24 +66,33 @@ export default function Map({
   useEffect(() => {
     if (mapRef.current) return;
 
+    // Set bounds to prevent gray margins - slightly larger than world to ensure coverage
+    const southWest = L.latLng(-85, -180);
+    const northEast = L.latLng(85, 180);
+    const bounds = L.latLngBounds(southWest, northEast);
+
     const map = L.map('map', {
       center: [20, 0],
       zoom: 2,
       minZoom: 2,
       maxZoom: 18,
+      maxBounds: bounds,
+      maxBoundsViscosity: 1.0,
       zoomControl: true,
       attributionControl: true,
-      // Allow wrapping so tiles fill the viewport
-      worldCopyJump: true,
     });
 
     // Calm, ocean-focused tile layer (CartoDB Voyager - softer blues)
-    // Don't use noWrap - let tiles repeat to fill viewport
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
       subdomains: 'abcd',
       maxZoom: 20,
+      noWrap: true,
+      bounds: bounds,
     }).addTo(map);
+
+    // Fit map to bounds on load to ensure no margins
+    map.fitBounds(bounds);
 
     // Position zoom control
     map.zoomControl.setPosition('bottomright');
@@ -145,14 +154,9 @@ export default function Map({
       const isHighlighted = hasActiveSearch && filteredIds.has(contact.id);
       const isFaded = hasActiveSearch && !filteredIds.has(contact.id);
       
-      // Check if contact belongs to active group and get color
-      let groupColor: string | undefined;
-      if (activeGroupId && activeGroupColor && contactGroupsMap) {
-        const contactGroups = contactGroupsMap.get(contact.id) || [];
-        if (contactGroups.includes(activeGroupId)) {
-          groupColor = activeGroupColor;
-        }
-      }
+      // When a group is active, show the group color border on all visible contacts
+      // (since they're already filtered to only show group members)
+      const groupColor = activeGroupId && activeGroupColor ? activeGroupColor : undefined;
 
       const marker = L.marker([contact.location.lat, contact.location.lng], {
         icon: createContactIcon(contact, isHighlighted, isFaded, groupColor),
@@ -176,14 +180,8 @@ export default function Map({
       const isHighlighted = hasActiveSearch && filteredIds.has(id);
       const isFaded = hasActiveSearch && !filteredIds.has(id);
       
-      // Check if contact belongs to active group
-      let groupColor: string | undefined;
-      if (activeGroupId && activeGroupColor && contactGroupsMap) {
-        const contactGroups = contactGroupsMap.get(contact.id) || [];
-        if (contactGroups.includes(activeGroupId)) {
-          groupColor = activeGroupColor;
-        }
-      }
+      // When a group is active, show the group color border
+      const groupColor = activeGroupId && activeGroupColor ? activeGroupColor : undefined;
 
       marker.setIcon(createContactIcon(contact, isHighlighted, isFaded, groupColor));
     });
