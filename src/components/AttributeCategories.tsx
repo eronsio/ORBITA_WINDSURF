@@ -223,17 +223,7 @@ export function AttributeCategories({
                       ...prev,
                       [category]: { ...prev[category], name: e.target.value },
                     }))}
-                    placeholder="Attribute name..."
-                    className="w-24 px-2 py-1 text-xs border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-accent"
-                  />
-                  <input
-                    type="text"
-                    value={newAttributes[category]?.value || ''}
-                    onChange={(e) => setNewAttributes(prev => ({
-                      ...prev,
-                      [category]: { ...prev[category], value: e.target.value },
-                    }))}
-                    placeholder="Value..."
+                    placeholder="Add attribute..."
                     className="flex-1 px-2 py-1 text-xs border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-accent"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleAddAttribute(category);

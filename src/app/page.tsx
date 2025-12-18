@@ -268,6 +268,46 @@ function HomeContent() {
     setGroups(prev => prev.map(g => g.id === id ? { ...g, ...updates } : g));
   }, []);
 
+  const handleAddContactToGroup = useCallback(async (contactId: string, groupId: string) => {
+    const { addContactToGroup } = await import('@/lib/supabase/groups');
+    const { error } = await addContactToGroup(contactId, groupId);
+    if (error) {
+      showToast(`Failed to add contact: ${error}`, 'error');
+    } else {
+      // Update local state
+      setContactGroupsMap(prev => {
+        const next = new globalThis.Map(prev);
+        const existing = next.get(contactId) || [];
+        next.set(contactId, [...existing, groupId]);
+        return next;
+      });
+      // Update group count
+      setGroups(prev => prev.map(g => 
+        g.id === groupId ? { ...g, contactCount: (g.contactCount || 0) + 1 } : g
+      ));
+    }
+  }, [showToast]);
+
+  const handleRemoveContactFromGroup = useCallback(async (contactId: string, groupId: string) => {
+    const { removeContactFromGroup } = await import('@/lib/supabase/groups');
+    const { error } = await removeContactFromGroup(contactId, groupId);
+    if (error) {
+      showToast(`Failed to remove contact: ${error}`, 'error');
+    } else {
+      // Update local state
+      setContactGroupsMap(prev => {
+        const next = new globalThis.Map(prev);
+        const existing = next.get(contactId) || [];
+        next.set(contactId, existing.filter(id => id !== groupId));
+        return next;
+      });
+      // Update group count
+      setGroups(prev => prev.map(g => 
+        g.id === groupId ? { ...g, contactCount: Math.max(0, (g.contactCount || 0) - 1) } : g
+      ));
+    }
+  }, [showToast]);
+
   // Combine personal contacts with community profiles
   const allPeople = useMemo(() => {
     const contactEmails = new Set(contacts.map(c => c.email?.toLowerCase()).filter(Boolean));
@@ -429,6 +469,10 @@ function HomeContent() {
         onCreateGroup={handleCreateGroup}
         onUpdateGroup={handleUpdateGroup}
         onDeleteGroup={handleDeleteGroup}
+        contacts={allPeople}
+        contactGroupsMap={contactGroupsMap}
+        onAddContactToGroup={handleAddContactToGroup}
+        onRemoveContactFromGroup={handleRemoveContactFromGroup}
       />
 
       {/* Profile setup modal */}
