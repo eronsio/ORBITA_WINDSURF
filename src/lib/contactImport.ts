@@ -1,6 +1,117 @@
 import type { Contact, SocialLink } from '@/types/contact';
 
 /**
+ * Phone country code to approximate coordinates mapping
+ * Uses capital city or geographic center as default location
+ */
+const PHONE_COUNTRY_CODES: Record<string, { lat: number; lng: number; country: string }> = {
+  '1': { lat: 37.0902, lng: -95.7129, country: 'USA' }, // USA center
+  '7': { lat: 55.7558, lng: 37.6173, country: 'Russia' }, // Moscow
+  '20': { lat: 30.0444, lng: 31.2357, country: 'Egypt' }, // Cairo
+  '27': { lat: -25.7479, lng: 28.2293, country: 'South Africa' }, // Pretoria
+  '30': { lat: 37.9838, lng: 23.7275, country: 'Greece' }, // Athens
+  '31': { lat: 52.3676, lng: 4.9041, country: 'Netherlands' }, // Amsterdam
+  '32': { lat: 50.8503, lng: 4.3517, country: 'Belgium' }, // Brussels
+  '33': { lat: 48.8566, lng: 2.3522, country: 'France' }, // Paris
+  '34': { lat: 40.4168, lng: -3.7038, country: 'Spain' }, // Madrid
+  '36': { lat: 47.4979, lng: 19.0402, country: 'Hungary' }, // Budapest
+  '39': { lat: 41.9028, lng: 12.4964, country: 'Italy' }, // Rome
+  '40': { lat: 44.4268, lng: 26.1025, country: 'Romania' }, // Bucharest
+  '41': { lat: 46.9480, lng: 7.4474, country: 'Switzerland' }, // Bern
+  '43': { lat: 48.2082, lng: 16.3738, country: 'Austria' }, // Vienna
+  '44': { lat: 51.5074, lng: -0.1278, country: 'UK' }, // London
+  '45': { lat: 55.6761, lng: 12.5683, country: 'Denmark' }, // Copenhagen
+  '46': { lat: 59.3293, lng: 18.0686, country: 'Sweden' }, // Stockholm
+  '47': { lat: 59.9139, lng: 10.7522, country: 'Norway' }, // Oslo
+  '48': { lat: 52.2297, lng: 21.0122, country: 'Poland' }, // Warsaw
+  '49': { lat: 52.5200, lng: 13.4050, country: 'Germany' }, // Berlin
+  '51': { lat: -12.0464, lng: -77.0428, country: 'Peru' }, // Lima
+  '52': { lat: 19.4326, lng: -99.1332, country: 'Mexico' }, // Mexico City
+  '53': { lat: 23.1136, lng: -82.3666, country: 'Cuba' }, // Havana
+  '54': { lat: -34.6037, lng: -58.3816, country: 'Argentina' }, // Buenos Aires
+  '55': { lat: -15.7975, lng: -47.8919, country: 'Brazil' }, // Brasilia
+  '56': { lat: -33.4489, lng: -70.6693, country: 'Chile' }, // Santiago
+  '57': { lat: 4.7110, lng: -74.0721, country: 'Colombia' }, // Bogota
+  '58': { lat: 10.4806, lng: -66.9036, country: 'Venezuela' }, // Caracas
+  '60': { lat: 3.1390, lng: 101.6869, country: 'Malaysia' }, // Kuala Lumpur
+  '61': { lat: -35.2809, lng: 149.1300, country: 'Australia' }, // Canberra
+  '62': { lat: -6.2088, lng: 106.8456, country: 'Indonesia' }, // Jakarta
+  '63': { lat: 14.5995, lng: 120.9842, country: 'Philippines' }, // Manila
+  '64': { lat: -41.2865, lng: 174.7762, country: 'New Zealand' }, // Wellington
+  '65': { lat: 1.3521, lng: 103.8198, country: 'Singapore' }, // Singapore
+  '66': { lat: 13.7563, lng: 100.5018, country: 'Thailand' }, // Bangkok
+  '81': { lat: 35.6762, lng: 139.6503, country: 'Japan' }, // Tokyo
+  '82': { lat: 37.5665, lng: 126.9780, country: 'South Korea' }, // Seoul
+  '84': { lat: 21.0285, lng: 105.8542, country: 'Vietnam' }, // Hanoi
+  '86': { lat: 39.9042, lng: 116.4074, country: 'China' }, // Beijing
+  '90': { lat: 39.9334, lng: 32.8597, country: 'Turkey' }, // Ankara
+  '91': { lat: 28.6139, lng: 77.2090, country: 'India' }, // New Delhi
+  '92': { lat: 33.6844, lng: 73.0479, country: 'Pakistan' }, // Islamabad
+  '93': { lat: 34.5553, lng: 69.2075, country: 'Afghanistan' }, // Kabul
+  '94': { lat: 6.9271, lng: 79.8612, country: 'Sri Lanka' }, // Colombo
+  '95': { lat: 19.7633, lng: 96.0785, country: 'Myanmar' }, // Naypyidaw
+  '98': { lat: 35.6892, lng: 51.3890, country: 'Iran' }, // Tehran
+  '212': { lat: 33.9716, lng: -6.8498, country: 'Morocco' }, // Rabat
+  '213': { lat: 36.7538, lng: 3.0588, country: 'Algeria' }, // Algiers
+  '216': { lat: 36.8065, lng: 10.1815, country: 'Tunisia' }, // Tunis
+  '220': { lat: 13.4549, lng: -16.5790, country: 'Gambia' }, // Banjul
+  '221': { lat: 14.7167, lng: -17.4677, country: 'Senegal' }, // Dakar
+  '234': { lat: 9.0765, lng: 7.3986, country: 'Nigeria' }, // Abuja
+  '254': { lat: -1.2921, lng: 36.8219, country: 'Kenya' }, // Nairobi
+  '255': { lat: -6.1630, lng: 35.7516, country: 'Tanzania' }, // Dodoma
+  '256': { lat: 0.3476, lng: 32.5825, country: 'Uganda' }, // Kampala
+  '351': { lat: 38.7223, lng: -9.1393, country: 'Portugal' }, // Lisbon
+  '352': { lat: 49.6116, lng: 6.1319, country: 'Luxembourg' }, // Luxembourg
+  '353': { lat: 53.3498, lng: -6.2603, country: 'Ireland' }, // Dublin
+  '354': { lat: 64.1466, lng: -21.9426, country: 'Iceland' }, // Reykjavik
+  '358': { lat: 60.1699, lng: 24.9384, country: 'Finland' }, // Helsinki
+  '370': { lat: 54.6872, lng: 25.2797, country: 'Lithuania' }, // Vilnius
+  '371': { lat: 56.9496, lng: 24.1052, country: 'Latvia' }, // Riga
+  '372': { lat: 59.4370, lng: 24.7536, country: 'Estonia' }, // Tallinn
+  '380': { lat: 50.4501, lng: 30.5234, country: 'Ukraine' }, // Kyiv
+  '381': { lat: 44.7866, lng: 20.4489, country: 'Serbia' }, // Belgrade
+  '385': { lat: 45.8150, lng: 15.9819, country: 'Croatia' }, // Zagreb
+  '386': { lat: 46.0569, lng: 14.5058, country: 'Slovenia' }, // Ljubljana
+  '420': { lat: 50.0755, lng: 14.4378, country: 'Czech Republic' }, // Prague
+  '421': { lat: 48.1486, lng: 17.1077, country: 'Slovakia' }, // Bratislava
+  '852': { lat: 22.3193, lng: 114.1694, country: 'Hong Kong' }, // Hong Kong
+  '853': { lat: 22.1987, lng: 113.5439, country: 'Macau' }, // Macau
+  '886': { lat: 25.0330, lng: 121.5654, country: 'Taiwan' }, // Taipei
+  '971': { lat: 24.4539, lng: 54.3773, country: 'UAE' }, // Abu Dhabi
+  '972': { lat: 31.7683, lng: 35.2137, country: 'Israel' }, // Jerusalem
+  '974': { lat: 25.2854, lng: 51.5310, country: 'Qatar' }, // Doha
+  '966': { lat: 24.7136, lng: 46.6753, country: 'Saudi Arabia' }, // Riyadh
+};
+
+/**
+ * Extract country code from phone number and return location
+ */
+function getLocationFromPhone(phone: string): { lat: number; lng: number; country: string } | null {
+  if (!phone) return null;
+  
+  // Clean the phone number - remove spaces, dashes, parentheses
+  const cleaned = phone.replace(/[\s\-\(\)\.]/g, '');
+  
+  // Must start with + or be a long number
+  let digits = cleaned;
+  if (cleaned.startsWith('+')) {
+    digits = cleaned.substring(1);
+  } else if (!cleaned.match(/^\d{10,}/)) {
+    return null; // Too short to determine country
+  }
+  
+  // Try matching country codes from longest to shortest (3, 2, 1 digits)
+  for (const len of [3, 2, 1]) {
+    const code = digits.substring(0, len);
+    if (PHONE_COUNTRY_CODES[code]) {
+      return PHONE_COUNTRY_CODES[code];
+    }
+  }
+  
+  return null;
+}
+
+/**
  * Normalize a name for matching: lowercase, remove accents, spaces, punctuation
  */
 export function normalizeName(name: string): string {
@@ -267,6 +378,22 @@ function parseCSVRow(row: string[], columns: CSVColumnMapExtended, rowIndex: num
         lng = parsedLng;
       } else {
         console.warn(`Row ${rowIndex + 1}: Invalid lat/lng, using defaults`);
+      }
+    }
+  }
+  
+  // If no lat/lng, try to geocode from phone number
+  if (lat === 0 && lng === 0) {
+    const phone1 = columns.phone1 !== undefined ? row[columns.phone1]?.trim() : undefined;
+    const phone2 = columns.phone2 !== undefined ? row[columns.phone2]?.trim() : undefined;
+    const phoneLocation = getLocationFromPhone(phone1 || '') || getLocationFromPhone(phone2 || '');
+    
+    if (phoneLocation) {
+      lat = phoneLocation.lat;
+      lng = phoneLocation.lng;
+      // Also set country if not already set
+      if (!country) {
+        country = phoneLocation.country;
       }
     }
   }
