@@ -170,7 +170,7 @@ export function ContactsList({
                 <div
                   key={contact.id}
                   className={cn(
-                    'flex items-center gap-3 px-4 py-3 border-b border-neutral-50 cursor-pointer transition-all',
+                    'flex items-center gap-2 px-3 py-2 border-b border-neutral-50 cursor-pointer transition-all',
                     isSelected ? 'bg-accent/10' : 'hover:bg-neutral-50',
                     !isConnected && highlightedContactId && 'opacity-30'
                   )}
@@ -179,8 +179,8 @@ export function ContactsList({
                   {/* Avatar */}
                   <div 
                     className={cn(
-                      'relative w-12 h-12 rounded-full overflow-hidden flex-shrink-0',
-                      isHighlighted && 'ring-2 ring-accent ring-offset-2'
+                      'relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0',
+                      isHighlighted && 'ring-2 ring-accent ring-offset-1'
                     )}
                     style={{ 
                       border: activeGroupColor ? `2px solid ${activeGroupColor}` : undefined 
@@ -189,7 +189,7 @@ export function ContactsList({
                     {contact.photoUrl ? (
                       <img src={contact.photoUrl} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-accent-light to-accent flex items-center justify-center text-white text-sm font-medium">
+                      <div className="w-full h-full bg-gradient-to-br from-accent-light to-accent flex items-center justify-center text-white text-xs font-medium">
                         {getInitials(contact.firstName, contact.lastName)}
                       </div>
                     )}
@@ -197,36 +197,21 @@ export function ContactsList({
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-neutral-800 truncate">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-medium text-neutral-800 truncate">
                         {contact.firstName} {contact.lastName}
                       </span>
                       {connectionCount > 0 && (
                         <span className="flex items-center gap-0.5 text-xs text-neutral-400">
-                          <Link2 className="w-3 h-3" />
+                          <Link2 className="w-2.5 h-2.5" />
                           {connectionCount}
                         </span>
                       )}
                     </div>
-                    {contact.location.city || contact.location.country ? (
-                      <p className="text-sm text-neutral-500 truncate">
+                    {(contact.location.city || contact.location.country) && (
+                      <p className="text-xs text-neutral-500 truncate">
                         {[contact.location.city, contact.location.country].filter(Boolean).join(', ')}
                       </p>
-                    ) : null}
-                    {contact.tags && contact.tags.length > 0 && (
-                      <div className="flex items-center gap-1 mt-1">
-                        {contact.tags.slice(0, 3).map(tag => (
-                          <span
-                            key={tag}
-                            className="px-1.5 py-0.5 rounded text-xs bg-neutral-100 text-neutral-600"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                        {contact.tags.length > 3 && (
-                          <span className="text-xs text-neutral-400">+{contact.tags.length - 3}</span>
-                        )}
-                      </div>
                     )}
                   </div>
 
@@ -237,17 +222,17 @@ export function ContactsList({
                       onHighlightContact?.(highlightedContactId === contact.id ? null : contact.id);
                     }}
                     className={cn(
-                      'p-2 rounded-full transition-colors',
+                      'p-1.5 rounded-full transition-colors',
                       isHighlighted
                         ? 'bg-accent text-white'
                         : 'text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600'
                     )}
                     title="Show connections"
                   >
-                    <Link2 className="w-4 h-4" />
+                    <Link2 className="w-3.5 h-3.5" />
                   </button>
 
-                  <ChevronRight className="w-4 h-4 text-neutral-300" />
+                  <ChevronRight className="w-3.5 h-3.5 text-neutral-300" />
                 </div>
               );
             })}

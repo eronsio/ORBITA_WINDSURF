@@ -382,9 +382,9 @@ function HomeContent() {
         onHighlightContact={setHighlightedContactId}
       />
 
-      {/* List view - full screen when active */}
+      {/* List view - full screen when active, but below the top controls */}
       {activeView === 'list' && isAuthenticated && (
-        <div className="absolute inset-0 z-[1100] bg-white">
+        <div className="absolute top-0 left-0 right-0 bottom-0 pt-28 z-[800] bg-white">
           <ContactsList
             contacts={filteredByGroup}
             onSelectContact={setSelectedContact}
