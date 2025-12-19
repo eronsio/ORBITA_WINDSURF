@@ -249,18 +249,6 @@ export function ContactsList({
         )}
       </div>
 
-      {/* Map button - bottom right */}
-      {onBackToMap && (
-        <div className="absolute bottom-6 right-4">
-          <button
-            onClick={onBackToMap}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/95 backdrop-blur-sm border border-neutral-200 shadow-lg hover:bg-neutral-50 transition-colors text-neutral-700 text-sm font-medium"
-          >
-            <MapIcon className="w-4 h-4" />
-            Map
-          </button>
-        </div>
-      )}
     </div>
   );
 }

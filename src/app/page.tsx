@@ -407,8 +407,8 @@ function HomeContent() {
         </div>
       )}
 
-      {/* Top-left: Logo + Groups */}
-      <div className="absolute top-4 left-4 z-[900] flex flex-col gap-2">
+      {/* Top-left: Logo + Groups + View switcher - PERSISTENT across all views */}
+      <div className="absolute top-4 left-4 z-[1200] flex flex-col gap-2">
         <Logo height={28} className="text-neutral-800" />
         {isAuthenticated && (
           <>
@@ -452,6 +452,28 @@ function HomeContent() {
                 <svg className="w-4 h-4 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
+              </button>
+            </div>
+
+            {/* View switcher: Map / List */}
+            <div className="flex items-center bg-white/90 backdrop-blur-sm rounded-lg border border-neutral-200 shadow-sm p-0.5">
+              <button
+                onClick={() => setActiveView('map')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  activeView === 'map' ? 'bg-accent text-white' : 'text-neutral-600 hover:bg-neutral-100'
+                }`}
+              >
+                <MapIcon className="w-4 h-4" />
+                Map
+              </button>
+              <button
+                onClick={() => setActiveView('list')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  activeView === 'list' ? 'bg-accent text-white' : 'text-neutral-600 hover:bg-neutral-100'
+                }`}
+              >
+                <List className="w-4 h-4" />
+                List
               </button>
             </div>
           </>
@@ -500,18 +522,6 @@ function HomeContent() {
             </div>
           )}
 
-          {/* View switcher - bottom right, above zoom controls */}
-          {isAuthenticated && (
-            <div className="absolute bottom-28 right-4 z-[900]">
-              <button
-                onClick={() => setActiveView('list')}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/95 backdrop-blur-sm border border-neutral-200 shadow-lg hover:bg-neutral-50 transition-colors text-neutral-700 text-sm font-medium"
-              >
-                <List className="w-4 h-4" />
-                List
-              </button>
-            </div>
-          )}
         </>
       )}
 
