@@ -93,10 +93,9 @@ export function ContactsList({
   }, [filteredContacts, sortBy]);
 
   return (
-    <div className="h-full flex flex-col bg-white relative">
-      {/* Header */}
+    <div className="h-full flex flex-col bg-white relative pt-32">
+      {/* Header - with top padding to avoid persistent controls */}
       <div className="p-4 border-b border-neutral-100">
-        <h2 className="text-lg font-semibold text-neutral-800 mb-3">Contacts</h2>
         
         {/* Search */}
         <div className="relative mb-3">
