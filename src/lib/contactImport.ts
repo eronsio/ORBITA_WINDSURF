@@ -130,17 +130,40 @@ interface CSVColumnMap {
 }
 
 /**
- * Detect column indices from header row
+ * CSV column mapping - extended for Google Contacts
  */
-function detectColumns(headers: string[]): CSVColumnMap {
-  const map: CSVColumnMap = {};
+interface CSVColumnMapExtended extends CSVColumnMap {
+  middleName?: number;
+  nickname?: number;
+  organization?: number;
+  title?: number;
+  birthday?: number;
+  notes?: number;
+  photo?: number;
+  labels?: number;
+  phone1?: number;
+  phone2?: number;
+  address1City?: number;
+  address1Country?: number;
+  website1?: number;
+}
+
+/**
+ * Detect column indices from header row
+ * Supports both simple CSV and Google Contacts export format
+ */
+function detectColumns(headers: string[]): CSVColumnMapExtended {
+  const map: CSVColumnMapExtended = {};
   
   headers.forEach((header, index) => {
     const h = header.toLowerCase().trim();
     
+    // Standard columns
     if (h === 'name' || h === 'fullname' || h === 'full_name') map.name = index;
-    else if (h === 'firstname' || h === 'first_name' || h === 'first') map.firstName = index;
-    else if (h === 'lastname' || h === 'last_name' || h === 'last') map.lastName = index;
+    else if (h === 'first name' || h === 'firstname' || h === 'first_name' || h === 'first') map.firstName = index;
+    else if (h === 'last name' || h === 'lastname' || h === 'last_name' || h === 'last') map.lastName = index;
+    else if (h === 'middle name' || h === 'middlename') map.middleName = index;
+    else if (h === 'nickname') map.nickname = index;
     else if (h === 'city') map.city = index;
     else if (h === 'country') map.country = index;
     else if (h === 'lat' || h === 'latitude') map.lat = index;
@@ -148,13 +171,24 @@ function detectColumns(headers: string[]): CSVColumnMap {
     else if (h === 'roles' || h === 'role' || h === 'tags' || h === 'tag') map.roles = index;
     else if (h === 'languages' || h === 'language' || h === 'langs') map.languages = index;
     else if (h === 'birthyear' || h === 'birth_year' || h === 'year' || h === 'born') map.birthYear = index;
-    else if (h === 'email' || h === 'mail') map.email = index;
-    else if (h === 'bio' || h === 'about' || h === 'description') map.bio = index;
+    else if (h === 'email' || h === 'mail' || h === 'e-mail 1 - value') map.email = index;
+    else if (h === 'bio' || h === 'about' || h === 'description' || h === 'notes') map.bio = index;
     else if (h === 'linkedin') map.linkedin = index;
     else if (h === 'instagram' || h === 'insta') map.instagram = index;
     else if (h === 'twitter' || h === 'x') map.twitter = index;
     else if (h === 'github') map.github = index;
-    else if (h === 'website' || h === 'web' || h === 'url') map.website = index;
+    else if (h === 'website' || h === 'web' || h === 'url' || h === 'website 1 - value') map.website = index;
+    
+    // Google Contacts specific columns
+    else if (h === 'organization name') map.organization = index;
+    else if (h === 'organization title') map.title = index;
+    else if (h === 'birthday') map.birthday = index;
+    else if (h === 'photo') map.photo = index;
+    else if (h === 'labels') map.labels = index;
+    else if (h === 'phone 1 - value') map.phone1 = index;
+    else if (h === 'phone 2 - value') map.phone2 = index;
+    else if (h === 'address 1 - city') map.address1City = index;
+    else if (h === 'address 1 - country') map.address1Country = index;
   });
   
   return map;
@@ -170,8 +204,9 @@ function parseList(value: string | undefined): string[] {
 
 /**
  * Parse a single CSV row into a Contact
+ * Supports both simple CSV and Google Contacts format
  */
-function parseCSVRow(row: string[], columns: CSVColumnMap, rowIndex: number): Contact | null {
+function parseCSVRow(row: string[], columns: CSVColumnMapExtended, rowIndex: number): Contact | null {
   // Get name - either from combined name field or firstName/lastName
   let firstName = '';
   let lastName = '';
@@ -189,15 +224,29 @@ function parseCSVRow(row: string[], columns: CSVColumnMap, rowIndex: number): Co
     lastName = row[columns.lastName].trim();
   }
   
+  // For Google Contacts: include middle name in lastName if present
+  if (columns.middleName !== undefined && row[columns.middleName]?.trim()) {
+    const middleName = row[columns.middleName].trim();
+    lastName = middleName + (lastName ? ' ' + lastName : '');
+  }
+  
   // Require at least a first name
   if (!firstName) {
     console.warn(`Row ${rowIndex + 1}: Missing name, skipping`);
     return null;
   }
   
-  // Parse location
-  const city = columns.city !== undefined ? row[columns.city]?.trim() || '' : '';
-  const country = columns.country !== undefined ? row[columns.country]?.trim() || '' : '';
+  // Parse location - check both standard and Google Contacts columns
+  let city = columns.city !== undefined ? row[columns.city]?.trim() || '' : '';
+  let country = columns.country !== undefined ? row[columns.country]?.trim() || '' : '';
+  
+  // Google Contacts address columns
+  if (!city && columns.address1City !== undefined) {
+    city = row[columns.address1City]?.trim() || '';
+  }
+  if (!country && columns.address1Country !== undefined) {
+    country = row[columns.address1Country]?.trim() || '';
+  }
   
   // Parse lat/lng - validate they're valid numbers
   let lat = 0;
@@ -222,16 +271,36 @@ function parseCSVRow(row: string[], columns: CSVColumnMap, rowIndex: number): Co
     }
   }
   
-  // Parse lists (semicolon-delimited)
+  // Parse labels from Google Contacts (use as tags)
+  let tags: string[] = [];
+  if (columns.labels !== undefined && row[columns.labels]) {
+    // Google labels are separated by " ::: "
+    tags = row[columns.labels]
+      .split(' ::: ')
+      .map(s => s.trim())
+      .filter(s => s && s !== '* myContacts' && !s.startsWith('*')); // Filter out system labels
+  }
+  
+  // Also check for roles column
   const roles = parseList(columns.roles !== undefined ? row[columns.roles] : undefined);
+  tags = [...tags, ...roles];
+  
   const languages = parseList(columns.languages !== undefined ? row[columns.languages] : undefined);
   
-  // Parse birth year
+  // Parse birth year - check both birthYear column and birthday column
   let birthYear: number | undefined;
   if (columns.birthYear !== undefined && row[columns.birthYear]) {
     const parsed = parseInt(row[columns.birthYear].trim(), 10);
     if (!isNaN(parsed) && parsed > 1900 && parsed < 2100) {
       birthYear = parsed;
+    }
+  }
+  if (!birthYear && columns.birthday !== undefined && row[columns.birthday]) {
+    // Try to extract year from birthday (various formats)
+    const birthdayStr = row[columns.birthday].trim();
+    const yearMatch = birthdayStr.match(/\b(19|20)\d{2}\b/);
+    if (yearMatch) {
+      birthYear = parseInt(yearMatch[0], 10);
     }
   }
   
@@ -254,25 +323,54 @@ function parseCSVRow(row: string[], columns: CSVColumnMap, rowIndex: number): Co
     socialLinks.push({ platform: 'website', url: row[columns.website].trim() });
   }
   
+  // Get email
+  let email = columns.email !== undefined ? row[columns.email]?.trim() : undefined;
+  
+  // Get bio/notes
+  let bio = columns.bio !== undefined ? row[columns.bio]?.trim() : undefined;
+  
+  // Get phone numbers for attributes
+  const attributes: Record<string, string | number | boolean> = {};
+  
+  if (columns.phone1 !== undefined && row[columns.phone1]?.trim()) {
+    attributes.phone = row[columns.phone1].trim();
+  }
+  if (columns.phone2 !== undefined && row[columns.phone2]?.trim()) {
+    attributes.phone2 = row[columns.phone2].trim();
+  }
+  
+  // Organization info
+  if (columns.organization !== undefined && row[columns.organization]?.trim()) {
+    attributes.company = row[columns.organization].trim();
+  }
+  if (columns.title !== undefined && row[columns.title]?.trim()) {
+    attributes.role = row[columns.title].trim();
+  }
+  
+  // Photo URL from Google Contacts
+  let photoUrl: string | undefined;
+  if (columns.photo !== undefined && row[columns.photo]?.trim()) {
+    const photoValue = row[columns.photo].trim();
+    if (photoValue.startsWith('http')) {
+      photoUrl = photoValue;
+    }
+  }
+  
   // Build contact
   const contact: Contact = {
     id: crypto.randomUUID(),
     firstName,
     lastName,
+    photoUrl,
     location: { lat, lng, city, country },
-    tags: roles,
+    tags,
     languages,
     birthYear,
-    email: columns.email !== undefined ? row[columns.email]?.trim() : undefined,
-    bio: columns.bio !== undefined ? row[columns.bio]?.trim() : undefined,
+    email,
+    bio,
     socialLinks,
-    attributes: {},
+    attributes,
   };
-  
-  // Add role to attributes if present
-  if (roles.length > 0) {
-    contact.attributes.role = roles[0];
-  }
   
   return contact;
 }
