@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Search, Users, Link2, ChevronRight } from 'lucide-react';
+import { Search, Users, Link2, ChevronRight, Map as MapIcon, ArrowLeft } from 'lucide-react';
 import { cn, getInitials } from '@/lib/utils';
 import type { Contact } from '@/types/contact';
 
@@ -13,6 +13,7 @@ interface ContactsListProps {
   connections?: Map<string, string[]>; // contactId -> array of connected contactIds
   highlightedContactId?: string | null; // Contact whose connections to highlight
   onHighlightContact?: (contactId: string | null) => void;
+  onBackToMap?: () => void;
 }
 
 export function ContactsList({
@@ -23,6 +24,7 @@ export function ContactsList({
   connections = new Map(),
   highlightedContactId,
   onHighlightContact,
+  onBackToMap,
 }: ContactsListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'country' | 'connections'>('name');
@@ -92,9 +94,20 @@ export function ContactsList({
 
   return (
     <div className="h-full flex flex-col bg-white">
-      {/* Header */}
+      {/* Header with back button */}
       <div className="p-4 border-b border-neutral-100">
-        <h2 className="text-lg font-semibold text-neutral-800 mb-3">Contacts</h2>
+        <div className="flex items-center gap-3 mb-3">
+          {onBackToMap && (
+            <button
+              onClick={onBackToMap}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-dark transition-colors"
+            >
+              <MapIcon className="w-4 h-4" />
+              Map
+            </button>
+          )}
+          <h2 className="text-lg font-semibold text-neutral-800">Contacts</h2>
+        </div>
         
         {/* Search */}
         <div className="relative mb-3">

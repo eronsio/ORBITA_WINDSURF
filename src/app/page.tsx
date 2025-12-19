@@ -382,9 +382,9 @@ function HomeContent() {
         onHighlightContact={setHighlightedContactId}
       />
 
-      {/* List view - full screen when active, but below the top controls */}
+      {/* List view - full screen when active */}
       {activeView === 'list' && isAuthenticated && (
-        <div className="absolute inset-0 pt-28 z-[1000] bg-white">
+        <div className="absolute inset-0 z-[1100] bg-white">
           <ContactsList
             contacts={filteredByGroup}
             onSelectContact={setSelectedContact}
@@ -393,6 +393,7 @@ function HomeContent() {
             connections={connections}
             highlightedContactId={highlightedContactId}
             onHighlightContact={setHighlightedContactId}
+            onBackToMap={() => setActiveView('map')}
           />
         </div>
       )}
