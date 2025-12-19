@@ -500,9 +500,9 @@ function HomeContent() {
             </div>
           )}
 
-          {/* View switcher - bottom right */}
+          {/* View switcher - bottom right, above zoom controls */}
           {isAuthenticated && (
-            <div className="absolute bottom-6 right-4 z-[900]">
+            <div className="absolute bottom-28 right-4 z-[900]">
               <button
                 onClick={() => setActiveView('list')}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/95 backdrop-blur-sm border border-neutral-200 shadow-lg hover:bg-neutral-50 transition-colors text-neutral-700 text-sm font-medium"
