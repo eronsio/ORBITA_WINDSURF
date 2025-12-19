@@ -163,7 +163,7 @@ export function ChatView({ onBack, onSelectProfile }: ChatViewProps) {
   // New chat search view
   if (showNewChat) {
     return (
-      <div className="h-full flex flex-col bg-white">
+      <div className="h-full flex flex-col bg-white pt-32">
         {/* Header */}
         <div className="flex items-center gap-3 p-4 border-b border-neutral-100">
           <button
@@ -252,18 +252,10 @@ export function ChatView({ onBack, onSelectProfile }: ChatViewProps) {
   // Conversation list view
   if (!activeConversation) {
     return (
-      <div className="h-full flex flex-col bg-white">
+      <div className="h-full flex flex-col bg-white pt-32">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-neutral-100">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onBack}
-              className="p-2 -ml-2 rounded-full hover:bg-neutral-100 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-neutral-600" />
-            </button>
-            <h1 className="text-lg font-semibold text-neutral-800">Messages</h1>
-          </div>
+          <h1 className="text-lg font-semibold text-neutral-800">Messages</h1>
           <button
             onClick={() => setShowNewChat(true)}
             className="p-2 rounded-full hover:bg-neutral-100 transition-colors"
@@ -359,7 +351,7 @@ export function ChatView({ onBack, onSelectProfile }: ChatViewProps) {
 
   // Active conversation view
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className="h-full flex flex-col bg-white pt-32">
       {/* Header */}
       <div className="flex items-center gap-3 p-4 border-b border-neutral-100">
         <button
