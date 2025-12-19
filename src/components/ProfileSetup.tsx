@@ -141,14 +141,14 @@ export function ProfileSetup({ isOpen, onClose, onSaved }: ProfileSetupProps) {
                     value={profile.city || ''}
                     onChange={(e) => setProfile(prev => ({ ...prev, city: e.target.value }))}
                     placeholder="City"
-                    className="flex-1 px-3 py-2 rounded-lg border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                    className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                   />
                   <input
                     type="text"
                     value={profile.country || ''}
                     onChange={(e) => setProfile(prev => ({ ...prev, country: e.target.value }))}
                     placeholder="Country"
-                    className="flex-1 px-3 py-2 rounded-lg border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+                    className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
                   />
                 </div>
                 <div className="flex flex-wrap gap-1.5">

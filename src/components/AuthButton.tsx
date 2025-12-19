@@ -8,9 +8,10 @@ import { cn } from '@/lib/utils';
 
 interface AuthButtonProps {
   onAuthChange?: (user: SupabaseUser | null) => void;
+  onProfileClick?: () => void;
 }
 
-export function AuthButton({ onAuthChange }: AuthButtonProps) {
+export function AuthButton({ onAuthChange, onProfileClick }: AuthButtonProps) {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [showSignIn, setShowSignIn] = useState(false);
@@ -97,6 +98,15 @@ export function AuthButton({ onAuthChange }: AuthButtonProps) {
             <div className="px-3 py-2 text-xs text-neutral-500 border-b border-neutral-100 truncate">
               {user.email}
             </div>
+            {onProfileClick && (
+              <button
+                onClick={onProfileClick}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors"
+              >
+                <User className="w-4 h-4" />
+                My Profile
+              </button>
+            )}
             <button
               onClick={handleSignOut}
               className="w-full flex items-center gap-2 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors"

@@ -12,7 +12,7 @@ import { ChatView } from '@/components/ChatView';
 import { ContactsList } from '@/components/ContactsList';
 import { Navigation, type ViewMode } from '@/components/Navigation';
 import { Logo } from '@/components/Logo';
-import { Users, MessageCircle } from 'lucide-react';
+import { Users, MessageCircle, Map as MapIcon, List } from 'lucide-react';
 import { ToastProvider, useToast } from '@/components/Toast';
 import { 
   fetchContacts, 
@@ -406,51 +406,76 @@ function HomeContent() {
         </div>
       )}
 
-      {/* Top-left: Logo + Groups with arrow navigation */}
+      {/* Top-left: Logo + View switcher + Groups */}
       <div className="absolute top-4 left-4 z-[900] flex flex-col gap-2">
         <Logo height={28} className="text-neutral-800" />
         {isAuthenticated && (
-          <div className="flex items-center gap-1">
-            {/* Previous group button */}
-            <button
-              onClick={() => {
-                const allGroupIds: (string | null)[] = [null, ...groups.map(g => g.id)];
-                const currentIndex = allGroupIds.indexOf(activeGroupId);
-                const newIndex = currentIndex > 0 ? currentIndex - 1 : allGroupIds.length - 1;
-                setActiveGroupId(allGroupIds[newIndex]);
-              }}
-              className="p-1.5 rounded-lg bg-white/90 backdrop-blur-sm border border-neutral-200 shadow-sm hover:bg-neutral-50 transition-colors"
-            >
-              <svg className="w-4 h-4 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            
-            {/* Group name button */}
-            <button
-              onClick={() => setShowGroupsPanel(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/90 backdrop-blur-sm border-2 shadow-sm text-neutral-700 text-sm font-medium transition-all duration-200"
-              style={{ borderColor: activeGroupColor || '#e5e7eb' }}
-            >
-              <Users className="w-4 h-4" style={{ color: activeGroupColor || undefined }} />
-              <span className="max-w-28 truncate">{activeGroupName || 'Everyone'}</span>
-            </button>
-            
-            {/* Next group button */}
-            <button
-              onClick={() => {
-                const allGroupIds: (string | null)[] = [null, ...groups.map(g => g.id)];
-                const currentIndex = allGroupIds.indexOf(activeGroupId);
-                const newIndex = currentIndex < allGroupIds.length - 1 ? currentIndex + 1 : 0;
-                setActiveGroupId(allGroupIds[newIndex]);
-              }}
-              className="p-1.5 rounded-lg bg-white/90 backdrop-blur-sm border border-neutral-200 shadow-sm hover:bg-neutral-50 transition-colors"
-            >
-              <svg className="w-4 h-4 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
+          <>
+            {/* View switcher: Map / List */}
+            <div className="flex items-center bg-white/90 backdrop-blur-sm rounded-lg border border-neutral-200 shadow-sm p-0.5">
+              <button
+                onClick={() => setActiveView('map')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  activeView === 'map' ? 'bg-accent text-white' : 'text-neutral-600 hover:bg-neutral-100'
+                }`}
+              >
+                <MapIcon className="w-4 h-4" />
+                Map
+              </button>
+              <button
+                onClick={() => setActiveView('list')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  activeView === 'list' ? 'bg-accent text-white' : 'text-neutral-600 hover:bg-neutral-100'
+                }`}
+              >
+                <List className="w-4 h-4" />
+                List
+              </button>
+            </div>
+
+            {/* Groups navigation */}
+            <div className="flex items-center gap-1">
+              {/* Previous group button */}
+              <button
+                onClick={() => {
+                  const allGroupIds: (string | null)[] = [null, ...groups.map(g => g.id)];
+                  const currentIndex = allGroupIds.indexOf(activeGroupId);
+                  const newIndex = currentIndex > 0 ? currentIndex - 1 : allGroupIds.length - 1;
+                  setActiveGroupId(allGroupIds[newIndex]);
+                }}
+                className="p-1.5 rounded-lg bg-white/90 backdrop-blur-sm border border-neutral-200 shadow-sm hover:bg-neutral-50 transition-colors"
+              >
+                <svg className="w-4 h-4 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              
+              {/* Group name button */}
+              <button
+                onClick={() => setShowGroupsPanel(true)}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/90 backdrop-blur-sm border-2 shadow-sm text-neutral-700 text-sm font-medium transition-all duration-200"
+                style={{ borderColor: activeGroupColor || '#e5e7eb' }}
+              >
+                <Users className="w-4 h-4" style={{ color: activeGroupColor || undefined }} />
+                <span className="max-w-28 truncate">{activeGroupName || 'Everyone'}</span>
+              </button>
+              
+              {/* Next group button */}
+              <button
+                onClick={() => {
+                  const allGroupIds: (string | null)[] = [null, ...groups.map(g => g.id)];
+                  const currentIndex = allGroupIds.indexOf(activeGroupId);
+                  const newIndex = currentIndex < allGroupIds.length - 1 ? currentIndex + 1 : 0;
+                  setActiveGroupId(allGroupIds[newIndex]);
+                }}
+                className="p-1.5 rounded-lg bg-white/90 backdrop-blur-sm border border-neutral-200 shadow-sm hover:bg-neutral-50 transition-colors"
+              >
+                <svg className="w-4 h-4 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          </>
         )}
       </div>
 
@@ -466,7 +491,7 @@ function HomeContent() {
             onInvite={handleInvite}
           />
 
-          {/* Auth + Import + Profile + Chat buttons - top-right */}
+          {/* Auth + Import + Chat buttons - top-right */}
           <div className="absolute top-4 right-4 z-[900] flex items-center gap-2">
             {isAuthenticated && (
               <>
@@ -481,16 +506,10 @@ function HomeContent() {
                     </span>
                   )}
                 </button>
-                <button
-                  onClick={() => setShowProfileSetup(true)}
-                  className="px-3 py-2 rounded-full bg-white/90 backdrop-blur-sm border border-neutral-200 shadow-sm hover:bg-neutral-50 transition-colors text-neutral-700 text-sm font-medium"
-                >
-                  My Profile
-                </button>
                 <ImportButton onImport={handleImport} onError={handleImportError} />
               </>
             )}
-            <AuthButton onAuthChange={handleAuthChange} />
+            <AuthButton onAuthChange={handleAuthChange} onProfileClick={() => setShowProfileSetup(true)} />
           </div>
 
           {/* Loading indicator */}
