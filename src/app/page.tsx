@@ -407,33 +407,11 @@ function HomeContent() {
         </div>
       )}
 
-      {/* Top-left: Logo + View switcher + Groups */}
+      {/* Top-left: Logo + Groups */}
       <div className="absolute top-4 left-4 z-[900] flex flex-col gap-2">
         <Logo height={28} className="text-neutral-800" />
         {isAuthenticated && (
           <>
-            {/* View switcher: Map / List */}
-            <div className="flex items-center bg-white/90 backdrop-blur-sm rounded-lg border border-neutral-200 shadow-sm p-0.5">
-              <button
-                onClick={() => setActiveView('map')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  activeView === 'map' ? 'bg-accent text-white' : 'text-neutral-600 hover:bg-neutral-100'
-                }`}
-              >
-                <MapIcon className="w-4 h-4" />
-                Map
-              </button>
-              <button
-                onClick={() => setActiveView('list')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  activeView === 'list' ? 'bg-accent text-white' : 'text-neutral-600 hover:bg-neutral-100'
-                }`}
-              >
-                <List className="w-4 h-4" />
-                List
-              </button>
-            </div>
-
             {/* Groups navigation */}
             <div className="flex items-center gap-1">
               {/* Previous group button */}
@@ -519,6 +497,19 @@ function HomeContent() {
               <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm text-sm text-neutral-500">
                 Loading...
               </div>
+            </div>
+          )}
+
+          {/* View switcher - bottom right */}
+          {isAuthenticated && (
+            <div className="absolute bottom-6 right-4 z-[900]">
+              <button
+                onClick={() => setActiveView('list')}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/95 backdrop-blur-sm border border-neutral-200 shadow-lg hover:bg-neutral-50 transition-colors text-neutral-700 text-sm font-medium"
+              >
+                <List className="w-4 h-4" />
+                List
+              </button>
             </div>
           )}
         </>
