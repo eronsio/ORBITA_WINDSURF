@@ -19,16 +19,31 @@ interface MapProps {
   activeGroupColor?: string;
   contactGroupsMap?: globalThis.Map<string, string[]>;
   activeGroupId?: string | null;
+  connections?: globalThis.Map<string, string[]>;
+  highlightedContactId?: string | null;
+  onHighlightContact?: (contactId: string | null) => void;
 }
 
 function createContactIcon(
   contact: Contact, 
   isHighlighted: boolean, 
   isFaded: boolean,
-  groupColor?: string
+  groupColor?: string,
+  isConnected?: boolean,
+  isConnectionHighlighted?: boolean
 ): L.DivIcon {
   const initials = getInitials(contact.firstName, contact.lastName);
-  const stateClass = isHighlighted ? 'highlighted' : isFaded ? 'faded' : '';
+  let stateClass = isHighlighted ? 'highlighted' : isFaded ? 'faded' : '';
+  
+  // Connection-based dimming takes precedence
+  if (isConnectionHighlighted !== undefined) {
+    if (!isConnected) {
+      stateClass = 'connection-dimmed';
+    } else if (isConnectionHighlighted) {
+      stateClass = 'connection-highlighted';
+    }
+  }
+  
   const statusClass = contact.status === 'unclaimed' ? 'unclaimed' : contact.status === 'invited' ? 'invited' : '';
   const borderStyle = groupColor ? `border: 3px solid ${groupColor};` : '';
   
@@ -57,6 +72,9 @@ export default function Map({
   activeGroupColor,
   contactGroupsMap,
   activeGroupId,
+  connections,
+  highlightedContactId,
+  onHighlightContact,
 }: MapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<globalThis.Map<string, L.Marker>>(new globalThis.Map());
@@ -184,23 +202,35 @@ export default function Map({
       const isFaded = hasActiveSearch && !filteredIds.has(contact.id);
       
       // When a group is active, show the group color border on all visible contacts
-      // (since they're already filtered to only show group members)
       const groupColor = activeGroupId && activeGroupColor ? activeGroupColor : undefined;
+      
+      // Connection highlighting
+      let isConnected: boolean | undefined;
+      let isConnectionHighlighted: boolean | undefined;
+      if (highlightedContactId && connections) {
+        const highlightedConnections = connections.get(highlightedContactId) || [];
+        isConnected = contact.id === highlightedContactId || highlightedConnections.includes(contact.id);
+        isConnectionHighlighted = contact.id === highlightedContactId;
+      }
 
       const marker = L.marker([contact.location.lat, contact.location.lng], {
-        icon: createContactIcon(contact, isHighlighted, isFaded, groupColor),
+        icon: createContactIcon(contact, isHighlighted, isFaded, groupColor, isConnected, isConnectionHighlighted),
       });
 
       marker.on('click', () => {
         onSelectContact(contact);
+        // Toggle connection highlight on click
+        if (onHighlightContact) {
+          onHighlightContact(highlightedContactId === contact.id ? null : contact.id);
+        }
       });
 
       clusterGroup.addLayer(marker);
       markersRef.current.set(contact.id, marker);
     });
-  }, [contacts, filteredIds, hasActiveSearch, onSelectContact, activeGroupId, activeGroupColor, contactGroupsMap]);
+  }, [contacts, filteredIds, hasActiveSearch, onSelectContact, activeGroupId, activeGroupColor, contactGroupsMap, connections, highlightedContactId, onHighlightContact]);
 
-  // Update marker icons when search or group changes
+  // Update marker icons when search, group, or connection highlighting changes
   useEffect(() => {
     markersRef.current.forEach((marker, id) => {
       const contact = contacts.find((c) => c.id === id);
@@ -211,10 +241,19 @@ export default function Map({
       
       // When a group is active, show the group color border
       const groupColor = activeGroupId && activeGroupColor ? activeGroupColor : undefined;
+      
+      // Connection highlighting
+      let isConnected: boolean | undefined;
+      let isConnectionHighlighted: boolean | undefined;
+      if (highlightedContactId && connections) {
+        const highlightedConnections = connections.get(highlightedContactId) || [];
+        isConnected = contact.id === highlightedContactId || highlightedConnections.includes(contact.id);
+        isConnectionHighlighted = contact.id === highlightedContactId;
+      }
 
-      marker.setIcon(createContactIcon(contact, isHighlighted, isFaded, groupColor));
+      marker.setIcon(createContactIcon(contact, isHighlighted, isFaded, groupColor, isConnected, isConnectionHighlighted));
     });
-  }, [contacts, filteredIds, hasActiveSearch, activeGroupId, activeGroupColor, contactGroupsMap]);
+  }, [contacts, filteredIds, hasActiveSearch, activeGroupId, activeGroupColor, contactGroupsMap, connections, highlightedContactId]);
 
   // No longer pan/zoom to selected contact - just open the panel
   // Removed zoom behavior per UX requirements

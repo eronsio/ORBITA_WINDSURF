@@ -9,6 +9,7 @@ import { AuthButton } from '@/components/AuthButton';
 import { ProfileSetup } from '@/components/ProfileSetup';
 import { GroupsPanel } from '@/components/GroupsPanel';
 import { ChatView } from '@/components/ChatView';
+import { ContactsList } from '@/components/ContactsList';
 import { Navigation, type ViewMode } from '@/components/Navigation';
 import { Logo } from '@/components/Logo';
 import { Users, MessageCircle } from 'lucide-react';
@@ -61,6 +62,10 @@ function HomeContent() {
   const [showGroupsPanel, setShowGroupsPanel] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   
+  // Connections state - who knows whom
+  const [connections, setConnections] = useState<globalThis.Map<string, string[]>>(new globalThis.Map());
+  const [highlightedContactId, setHighlightedContactId] = useState<string | null>(null);
+  
   const { showToast } = useToast();
 
   // Load all data when authenticated
@@ -71,11 +76,13 @@ function HomeContent() {
       loadGroups();
       loadContactGroups();
       loadUnreadCount();
+      loadConnections();
     } else {
       setContacts([]);
       setCommunityProfiles([]);
       setGroups([]);
       setContactGroupsMap(new globalThis.Map());
+      setConnections(new globalThis.Map());
       setUnreadChatCount(0);
       setLoading(false);
     }
@@ -117,6 +124,16 @@ function HomeContent() {
       console.error('Failed to load contact groups:', error);
     } else if (data) {
       setContactGroupsMap(data);
+    }
+  };
+
+  const loadConnections = async () => {
+    const { fetchConnections } = await import('@/lib/supabase/connections');
+    const { data, error } = await fetchConnections();
+    if (error) {
+      console.error('Failed to load connections:', error);
+    } else if (data) {
+      setConnections(data);
     }
   };
 
@@ -360,7 +377,25 @@ function HomeContent() {
         activeGroupColor={activeGroupColor}
         contactGroupsMap={contactGroupsMap}
         activeGroupId={activeGroupId}
+        connections={connections}
+        highlightedContactId={highlightedContactId}
+        onHighlightContact={setHighlightedContactId}
       />
+
+      {/* List view - full screen when active */}
+      {activeView === 'list' && isAuthenticated && (
+        <div className="absolute inset-0 z-[1100] bg-white">
+          <ContactsList
+            contacts={filteredByGroup}
+            onSelectContact={setSelectedContact}
+            selectedContactId={selectedContact?.id}
+            activeGroupColor={activeGroupColor}
+            connections={connections}
+            highlightedContactId={highlightedContactId}
+            onHighlightContact={setHighlightedContactId}
+          />
+        </div>
+      )}
 
       {/* Chat view - full screen when active */}
       {activeView === 'chat' && isAuthenticated && (

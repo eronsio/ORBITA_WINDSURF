@@ -1,9 +1,9 @@
 'use client';
 
-import { Map, MessageCircle, Users } from 'lucide-react';
+import { Map, MessageCircle, Users, List } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type ViewMode = 'map' | 'chat';
+export type ViewMode = 'map' | 'list' | 'chat';
 
 interface NavigationProps {
   activeView: ViewMode;
@@ -52,6 +52,20 @@ export function Navigation({
         >
           <Map className="w-5 h-5" />
           <span className="text-sm font-medium">Map</span>
+        </button>
+
+        {/* List tab */}
+        <button
+          onClick={() => onViewChange('list')}
+          className={cn(
+            'flex items-center gap-2 px-4 py-2.5 rounded-full transition-all',
+            activeView === 'list'
+              ? 'bg-accent text-white'
+              : 'text-neutral-600 hover:bg-neutral-100'
+          )}
+        >
+          <List className="w-5 h-5" />
+          <span className="text-sm font-medium">List</span>
         </button>
 
         {/* Chat tab */}
