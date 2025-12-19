@@ -455,12 +455,14 @@ function HomeContent() {
               </button>
             </div>
 
-            {/* View switcher: Map / List */}
-            <div className="inline-flex rounded-lg border border-neutral-200 shadow-sm overflow-hidden">
+            {/* View switcher: Map / List - two separate buttons */}
+            <div className="flex gap-1">
               <button
                 onClick={() => setActiveView('map')}
-                className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${
-                  activeView === 'map' ? 'bg-accent text-white' : 'bg-white text-neutral-600 hover:bg-neutral-100'
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
+                  activeView === 'map' 
+                    ? 'bg-accent text-white border-accent' 
+                    : 'bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50'
                 }`}
               >
                 <MapIcon className="w-4 h-4" />
@@ -468,8 +470,10 @@ function HomeContent() {
               </button>
               <button
                 onClick={() => setActiveView('list')}
-                className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${
-                  activeView === 'list' ? 'bg-accent text-white' : 'bg-white text-neutral-600 hover:bg-neutral-100'
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
+                  activeView === 'list' 
+                    ? 'bg-accent text-white border-accent' 
+                    : 'bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50'
                 }`}
               >
                 <List className="w-4 h-4" />
